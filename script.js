@@ -28,6 +28,7 @@ const sendBtn = document.getElementById("sendBtn");
 
 
 let messages = [];
+let currentChatId = null;
 
 let currentApiKey = localStorage.getItem("globalblamp_api_key") || "";
 let currentModel = localStorage.getItem("globalblamp_model") || "gpt-5.6-sol";
@@ -245,6 +246,42 @@ function addMessage(role, content, isError = false) {
   return bubble;
 }
 
+async function createCloudChat() {
+  const response = await fetch(
+    `${HISTORY_API}/chats`,
+    {
+      method: "POST",
+
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": `Bearer ${currentApiKey}`
+      },
+
+      body: JSON.stringify({
+        title: "New Chat",
+        model: currentModel
+      })
+    }
+  );
+
+  let data;
+
+  try {
+    data = await response.json();
+  } catch {
+    data = null;
+  }
+
+  if (!response.ok) {
+    throw new Error(
+      data?.error || "Could not create chat"
+    );
+  }
+
+  currentChatId = data.chat.id;
+
+  return data.chat;
+}
 
 function setLoading(isLoading) {
   sendBtn.disabled = isLoading;
@@ -275,6 +312,17 @@ async function sendMessage() {
 
   messageInput.value = "";
   resizeTextarea();
+
+
+  try {
+    if (!currentChatId) {
+      await createCloudChat();
+    }
+
+  } catch (error) {
+    alert(error.message);
+    return;
+  }
 
 
   addMessage("user", userText);
