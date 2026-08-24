@@ -380,6 +380,171 @@ button {
 .login-message.success {
   color: #8effb0;
 }
+.history-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 1400;
+  background: rgba(0, 0, 0, 0.58);
+}
+
+.history-panel {
+  position: fixed;
+  top: 0;
+  left: 0;
+  z-index: 1500;
+
+  width: min(84vw, 340px);
+  height: 100dvh;
+
+  padding:
+    calc(16px + env(safe-area-inset-top))
+    14px
+    calc(16px + env(safe-area-inset-bottom));
+
+  background: #111114;
+  border-right: 1px solid #29292f;
+
+  display: flex;
+  flex-direction: column;
+
+  box-shadow: 20px 0 60px rgba(0, 0, 0, 0.45);
+}
+
+
+.history-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+
+  margin-bottom: 14px;
+}
+
+
+.history-header h2 {
+  font-size: 20px;
+}
+
+
+.new-chat-button {
+  width: 100%;
+  min-height: 46px;
+
+  padding: 0 14px;
+
+  border: 1px solid #303038;
+  border-radius: 13px;
+
+  background: #1b1b20;
+  color: #ffffff;
+
+  font-weight: 700;
+  text-align: left;
+}
+
+
+.new-chat-button:active {
+  transform: scale(0.99);
+}
+
+
+.chat-list {
+  flex: 1;
+  min-height: 0;
+
+  margin-top: 14px;
+
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+
+
+.history-empty {
+  padding: 24px 10px;
+
+  color: #85858e;
+
+  font-size: 13px;
+  text-align: center;
+}
+
+
+.chat-list-item {
+  width: 100%;
+
+  margin-bottom: 8px;
+  padding: 12px;
+
+  border: 1px solid transparent;
+  border-radius: 12px;
+
+  background: transparent;
+  color: #ffffff;
+
+  text-align: left;
+}
+
+
+.chat-list-item:hover {
+  background: #19191e;
+}
+
+
+.chat-list-item.active {
+  border-color: #35353d;
+  background: #1d1d22;
+}
+
+
+.chat-list-title {
+  overflow: hidden;
+
+  font-size: 14px;
+  font-weight: 700;
+
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+
+.chat-list-meta {
+  margin-top: 5px;
+
+  overflow: hidden;
+
+  color: #85858e;
+
+  font-size: 11px;
+
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+
+.topbar-title {
+  flex: 1;
+
+  min-width: 0;
+
+  padding: 0 12px;
+}
+
+
+.topbar-title h1,
+.topbar-title p {
+  overflow: hidden;
+
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+
+@media (min-width: 900px) {
+  .history-panel {
+    width: 360px;
+  }
+}
+
+
 .hidden {
   display: none !important;
 }
