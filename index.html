@@ -53,17 +53,68 @@
   </div>
   
   <div id="chatApp" class="app hidden">
+<div
+  id="historyBackdrop"
+  class="history-backdrop hidden"
+></div>
 
-    <header class="topbar">
-      <div>
-        <h1>GlobalBLAMP AI</h1>
-        <p>Mobile AI Chat</p>
-      </div>
 
-      <button id="settingsBtn" class="icon-button">
-        ⚙️
-      </button>
-    </header>
+<aside
+  id="historyPanel"
+  class="history-panel hidden"
+>
+
+  <div class="history-header">
+
+    <h2>Chats</h2>
+
+    <button
+      id="closeHistoryBtn"
+      class="icon-button"
+    >
+      ✕
+    </button>
+
+  </div>
+
+
+  <button
+    id="newChatBtn"
+    class="new-chat-button"
+  >
+    + New Chat
+  </button>
+
+
+  <div
+    id="chatList"
+    class="chat-list"
+  >
+
+    <div class="history-empty">
+      No chats yet.
+    </div>
+
+  </div>
+
+</aside>
+    
+<header class="topbar">
+
+  <button id="historyBtn" class="icon-button">
+    ☰
+  </button>
+
+  <div class="topbar-title">
+    <h1>GlobalBLAMP AI</h1>
+    <p>Mobile AI Chat</p>
+  </div>
+
+  <button id="settingsBtn" class="icon-button">
+    ⚙️
+  </button>
+
+</header>
 
 
     <main id="chatArea" class="chat-area">
