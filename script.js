@@ -1,4 +1,17 @@
 const API_BASE_URL = "https://ai.geraikita.com/v1";
+const HISTORY_API = "https://history.bluelamp.workers.dev";
+
+const loginScreen = document.getElementById("loginScreen");
+const chatApp = document.getElementById("chatApp");
+
+const loginApiKeyInput =
+  document.getElementById("loginApiKeyInput");
+
+const loginBtn =
+  document.getElementById("loginBtn");
+
+const loginMessage =
+  document.getElementById("loginMessage");
 
 const settingsBtn = document.getElementById("settingsBtn");
 const closeSettingsBtn = document.getElementById("closeSettingsBtn");
@@ -19,6 +32,89 @@ let messages = [];
 let currentApiKey = localStorage.getItem("globalblamp_api_key") || "";
 let currentModel = localStorage.getItem("globalblamp_model") || "gpt-5.6-sol";
 
+function setLoginMessage(text, type = "") {
+  loginMessage.textContent = text;
+
+  loginMessage.classList.remove(
+    "error",
+    "success"
+  );
+
+  if (type) {
+    loginMessage.classList.add(type);
+  }
+}
+
+
+function showLogin() {
+  loginScreen.classList.remove("hidden");
+  chatApp.classList.add("hidden");
+}
+
+
+function showChat() {
+  loginScreen.classList.add("hidden");
+  chatApp.classList.remove("hidden");
+}
+
+
+async function loginWithApiKey(apiKey) {
+  setLoginMessage("Checking account...");
+
+  loginBtn.disabled = true;
+  loginApiKeyInput.disabled = true;
+
+  try {
+    const response = await fetch(
+      `${HISTORY_API}/account`,
+      {
+        method: "POST",
+
+        headers: {
+          "Authorization": `Bearer ${apiKey}`
+        }
+      }
+    );
+
+    const data = await response.json();
+
+    if (!response.ok) {
+      throw new Error(
+        data?.error || "Unable to login"
+      );
+    }
+
+    currentApiKey = apiKey;
+
+    localStorage.setItem(
+      "globalblamp_api_key",
+      currentApiKey
+    );
+
+    setLoginMessage(
+      "Login successful.",
+      "success"
+    );
+
+    showChat();
+
+    return true;
+
+  } catch (error) {
+    setLoginMessage(
+      error.message,
+      "error"
+    );
+
+    showLogin();
+
+    return false;
+
+  } finally {
+    loginBtn.disabled = false;
+    loginApiKeyInput.disabled = false;
+  }
+}
 
 function loadSettings() {
   apiKeyInput.value = currentApiKey;
@@ -37,7 +133,7 @@ function closeSettings() {
 }
 
 
-function saveSettings() {
+async function saveSettings() {
   const apiKey = apiKeyInput.value.trim();
   const model = modelSelect.value;
 
@@ -51,13 +147,53 @@ function saveSettings() {
     return;
   }
 
-  currentApiKey = apiKey;
-  currentModel = model;
+  saveSettingsBtn.disabled = true;
+  saveSettingsBtn.textContent = "Checking...";
 
-  localStorage.setItem("globalblamp_api_key", currentApiKey);
-  localStorage.setItem("globalblamp_model", currentModel);
+  try {
+    const response = await fetch(
+      `${HISTORY_API}/account`,
+      {
+        method: "POST",
 
-  closeSettings();
+        headers: {
+          "Authorization": `Bearer ${apiKey}`
+        }
+      }
+    );
+
+    const data = await response.json();
+
+    if (!response.ok) {
+      throw new Error(
+        data?.error || "This API key cannot be used."
+      );
+    }
+
+    currentApiKey = apiKey;
+    currentModel = model;
+
+    localStorage.setItem(
+      "globalblamp_api_key",
+      currentApiKey
+    );
+
+    localStorage.setItem(
+      "globalblamp_model",
+      currentModel
+    );
+
+    closeSettings();
+
+  } catch (error) {
+    alert(error.message);
+
+    apiKeyInput.value = currentApiKey;
+
+  } finally {
+    saveSettingsBtn.disabled = false;
+    saveSettingsBtn.textContent = "Save Settings";
+  }
 }
 
 
@@ -253,6 +389,47 @@ function resizeTextarea() {
     `${newHeight}px`;
 }
 
+loginBtn.addEventListener(
+  "click",
+  async () => {
+    const apiKey =
+      loginApiKeyInput.value.trim();
+
+    if (!apiKey) {
+      setLoginMessage(
+        "Enter your API key.",
+        "error"
+      );
+
+      return;
+    }
+
+    if (!apiKey.startsWith("gk-")) {
+      setLoginMessage(
+        "API key must start with gk-",
+        "error"
+      );
+
+      return;
+    }
+
+    await loginWithApiKey(apiKey);
+  }
+);
+
+
+loginApiKeyInput.addEventListener(
+  "keydown",
+  async (event) => {
+    if (event.key !== "Enter") {
+      return;
+    }
+
+    event.preventDefault();
+
+    loginBtn.click();
+  }
+);
 
 settingsBtn.addEventListener(
   "click",
@@ -313,4 +490,29 @@ messageInput.addEventListener(
 );
 
 
-loadSettings();
+async function startApp() {
+  loadSettings();
+
+  if (!currentApiKey) {
+    showLogin();
+    return;
+  }
+
+  loginApiKeyInput.value = currentApiKey;
+
+  const success =
+    await loginWithApiKey(currentApiKey);
+
+  if (!success) {
+    localStorage.removeItem(
+      "globalblamp_api_key"
+    );
+
+    currentApiKey = "";
+
+    loginApiKeyInput.value = "";
+  }
+}
+
+
+startApp();
