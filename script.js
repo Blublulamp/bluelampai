@@ -22,6 +22,24 @@ const settingsModal = document.getElementById("settingsModal");
 const apiKeyInput = document.getElementById("apiKeyInput");
 const modelSelect = document.getElementById("modelSelect");
 
+const historyBtn =
+  document.getElementById("historyBtn");
+
+const historyBackdrop =
+  document.getElementById("historyBackdrop");
+
+const historyPanel =
+  document.getElementById("historyPanel");
+
+const closeHistoryBtn =
+  document.getElementById("closeHistoryBtn");
+
+const newChatBtn =
+  document.getElementById("newChatBtn");
+
+const chatList =
+  document.getElementById("chatList");
+
 const chatArea = document.getElementById("chatArea");
 const messageInput = document.getElementById("messageInput");
 const sendBtn = document.getElementById("sendBtn");
@@ -97,9 +115,18 @@ async function loginWithApiKey(apiKey) {
       "success"
     );
 
-    showChat();
+showChat();
 
-    return true;
+try {
+  await loadChats();
+} catch (error) {
+  console.error(
+    "Could not load chats after login:",
+    error
+  );
+}
+
+return true;
 
   } catch (error) {
     setLoginMessage(
@@ -122,6 +149,16 @@ function loadSettings() {
   modelSelect.value = currentModel;
 }
 
+function openHistory() {
+  historyBackdrop.classList.remove("hidden");
+  historyPanel.classList.remove("hidden");
+}
+
+
+function closeHistory() {
+  historyBackdrop.classList.add("hidden");
+  historyPanel.classList.add("hidden");
+}
 
 function openSettings() {
   loadSettings();
@@ -246,6 +283,108 @@ function addMessage(role, content, isError = false) {
   return bubble;
 }
 
+async function loadChats() {
+  const response = await fetch(
+    `${HISTORY_API}/chats`,
+    {
+      method: "GET",
+
+      headers: {
+        "Authorization": `Bearer ${currentApiKey}`
+      }
+    }
+  );
+
+  let data;
+
+  try {
+    data = await response.json();
+  } catch {
+    data = null;
+  }
+
+  if (!response.ok) {
+    throw new Error(
+      data?.error || "Could not load chats"
+    );
+  }
+
+  const chats = Array.isArray(data?.chats)
+    ? data.chats
+    : [];
+
+  renderChatList(chats);
+
+  return chats;
+}
+
+function renderChatList(chats) {
+  chatList.innerHTML = "";
+
+  if (!chats.length) {
+    const empty = document.createElement("div");
+
+    empty.className = "history-empty";
+    empty.textContent = "No chats yet.";
+
+    chatList.appendChild(empty);
+
+    return;
+  }
+
+  chats.forEach((chat) => {
+    const button =
+      document.createElement("button");
+
+    button.className =
+      "chat-list-item";
+
+    if (chat.id === currentChatId) {
+      button.classList.add("active");
+    }
+
+
+    const title =
+      document.createElement("div");
+
+    title.className =
+      "chat-list-title";
+
+    title.textContent =
+      chat.title || "New Chat";
+
+
+    const meta =
+      document.createElement("div");
+
+    meta.className =
+      "chat-list-meta";
+
+    meta.textContent =
+      chat.model || "";
+
+
+    button.appendChild(title);
+    button.appendChild(meta);
+
+
+    button.addEventListener(
+      "click",
+      () => {
+        console.log(
+          "Selected chat:",
+          chat.id
+        );
+
+        closeHistory();
+      }
+    );
+
+
+    chatList.appendChild(button);
+  });
+}
+
 async function createCloudChat() {
   const response = await fetch(
     `${HISTORY_API}/chats`,
@@ -278,9 +417,58 @@ async function createCloudChat() {
     );
   }
 
-  currentChatId = data.chat.id;
+currentChatId = data.chat.id;
 
-  return data.chat;
+try {
+  await loadChats();
+} catch (error) {
+  console.error(
+    "Could not refresh chat list:",
+    error
+  );
+}
+
+return data.chat;
+}
+
+async function saveCloudMessage(role, content) {
+  if (!currentChatId) {
+    throw new Error("No active chat");
+  }
+
+  const response = await fetch(
+    `${HISTORY_API}/messages`,
+    {
+      method: "POST",
+
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": `Bearer ${currentApiKey}`
+      },
+
+      body: JSON.stringify({
+        chat_id: currentChatId,
+        role: role,
+        content: content
+      })
+    }
+  );
+
+  let data;
+
+  try {
+    data = await response.json();
+  } catch {
+    data = null;
+  }
+
+  if (!response.ok) {
+    throw new Error(
+      data?.error || "Could not save message"
+    );
+  }
+
+  return true;
 }
 
 function setLoading(isLoading) {
@@ -332,6 +520,20 @@ async function sendMessage() {
     role: "user",
     content: userText
   });
+
+
+  try {
+    await saveCloudMessage(
+      "user",
+      userText
+    );
+
+  } catch (error) {
+    console.error(
+      "Could not save user message:",
+      error
+    );
+  }
 
 
   setLoading(true);
@@ -400,6 +602,20 @@ async function sendMessage() {
       role: "assistant",
       content: assistantText
     });
+
+
+    try {
+      await saveCloudMessage(
+        "assistant",
+        assistantText
+      );
+
+    } catch (error) {
+      console.error(
+        "Could not save assistant message:",
+        error
+      );
+    }
 
 
   } catch (error) {
@@ -476,6 +692,57 @@ loginApiKeyInput.addEventListener(
     event.preventDefault();
 
     loginBtn.click();
+  }
+);
+
+historyBtn.addEventListener(
+  "click",
+  async () => {
+    openHistory();
+
+    try {
+      await loadChats();
+
+    } catch (error) {
+      console.error(
+        "Could not load chats:",
+        error
+      );
+    }
+  }
+);
+
+
+closeHistoryBtn.addEventListener(
+  "click",
+  closeHistory
+);
+
+
+historyBackdrop.addEventListener(
+  "click",
+  closeHistory
+);
+
+newChatBtn.addEventListener(
+  "click",
+  () => {
+    currentChatId = null;
+    messages = [];
+
+    chatArea.innerHTML = `
+      <div class="welcome-message">
+        <h2>New Chat</h2>
+
+        <p>
+          Start a new conversation.
+        </p>
+      </div>
+    `;
+
+    closeHistory();
+
+    messageInput.focus();
   }
 );
 
