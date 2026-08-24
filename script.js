@@ -364,25 +364,230 @@ function renderChatList(chats) {
       chat.model || "";
 
 
-    button.appendChild(title);
-    button.appendChild(meta);
+button.appendChild(title);
+button.appendChild(meta);
 
 
-    button.addEventListener(
-      "click",
-      () => {
-        console.log(
-          "Selected chat:",
-          chat.id
-        );
+const deleteBtn =
+  document.createElement("button");
 
-        closeHistory();
-      }
+deleteBtn.className =
+  "chat-delete-button";
+
+deleteBtn.textContent = "Delete";
+
+
+deleteBtn.addEventListener(
+  "click",
+  async (event) => {
+    event.stopPropagation();
+
+    const confirmed = confirm(
+      `Delete "${chat.title || "New Chat"}"?`
     );
+
+    if (!confirmed) {
+      return;
+    }
+
+    deleteBtn.disabled = true;
+
+    try {
+      await deleteCloudChat(chat.id);
+
+      if (currentChatId === chat.id) {
+        currentChatId = null;
+        messages = [];
+
+        chatArea.innerHTML = `
+          <div class="welcome-message">
+            <h2>New Chat</h2>
+
+            <p>
+              Start a new conversation.
+            </p>
+          </div>
+        `;
+      }
+
+      await loadChats();
+
+    } catch (error) {
+      console.error(
+        "Could not delete chat:",
+        error
+      );
+
+      alert(
+        error.message ||
+        "Could not delete chat"
+      );
+
+    } finally {
+      deleteBtn.disabled = false;
+    }
+  }
+);
+
+
+button.appendChild(deleteBtn);
+
+
+button.addEventListener(
+  "click",
+  async () => {
+    button.disabled = true;
+
+    try {
+      await openSavedChat(chat);
+
+    } catch (error) {
+      console.error(
+        "Could not open chat:",
+        error
+      );
+
+      alert(
+        error.message ||
+        "Could not open chat"
+      );
+
+    } finally {
+      button.disabled = false;
+    }
+  }
+);
 
 
     chatList.appendChild(button);
   });
+}
+
+async function loadCloudMessages(chatId) {
+  const response = await fetch(
+    `${HISTORY_API}/messages/${chatId}`,
+    {
+      method: "GET",
+
+      headers: {
+        "Authorization": `Bearer ${currentApiKey}`
+      }
+    }
+  );
+
+  let data;
+
+  try {
+    data = await response.json();
+  } catch {
+    data = null;
+  }
+
+  if (!response.ok) {
+    throw new Error(
+      data?.error || "Could not load messages"
+    );
+  }
+
+  const savedMessages =
+    Array.isArray(data?.messages)
+      ? data.messages
+      : [];
+
+  return savedMessages;
+}
+
+async function openSavedChat(chat) {
+  const savedMessages =
+    await loadCloudMessages(chat.id);
+
+  currentChatId = chat.id;
+
+  currentModel =
+    chat.model || currentModel;
+
+  localStorage.setItem(
+    "globalblamp_model",
+    currentModel
+  );
+
+  modelSelect.value = currentModel;
+
+  messages = savedMessages.map(
+    (message) => ({
+      role: message.role,
+      content: message.content
+    })
+  );
+
+
+  chatArea.innerHTML = "";
+
+
+  if (!messages.length) {
+    chatArea.innerHTML = `
+      <div class="welcome-message">
+        <h2>${chat.title || "New Chat"}</h2>
+
+        <p>
+          Start chatting.
+        </p>
+      </div>
+    `;
+
+  } else {
+    messages.forEach((message) => {
+      addMessage(
+        message.role,
+        message.content
+      );
+    });
+  }
+
+
+  try {
+    await loadChats();
+
+  } catch (error) {
+    console.error(
+      "Could not refresh chat list:",
+      error
+    );
+  }
+
+
+  closeHistory();
+
+  messageInput.focus();
+}
+
+async function deleteCloudChat(chatId) {
+  const response = await fetch(
+    `${HISTORY_API}/chats/${chatId}`,
+    {
+      method: "DELETE",
+
+      headers: {
+        "Authorization": `Bearer ${currentApiKey}`
+      }
+    }
+  );
+
+  let data;
+
+  try {
+    data = await response.json();
+  } catch {
+    data = null;
+  }
+
+  if (!response.ok) {
+    throw new Error(
+      data?.error || "Could not delete chat"
+    );
+  }
+
+  return true;
 }
 
 async function createCloudChat() {
