@@ -75,6 +75,11 @@
       font-weight: 700;
     }
 
+    button:disabled {
+      opacity: 0.55;
+      cursor: not-allowed;
+    }
+
     .primary {
       background: #ffffff;
       color: #000000;
@@ -82,6 +87,21 @@
 
     .secondary {
       background: #25252b;
+      color: #ffffff;
+    }
+
+    .warning {
+      background: #6b4d13;
+      color: #ffffff;
+    }
+
+    .danger {
+      background: #7a2424;
+      color: #ffffff;
+    }
+
+    .success-button {
+      background: #1f6238;
       color: #ffffff;
     }
 
@@ -112,6 +132,7 @@
     .accounts {
       display: grid;
       gap: 12px;
+      margin-top: 14px;
     }
 
     .account-item {
@@ -124,6 +145,7 @@
     .account-key {
       margin-bottom: 8px;
       font-weight: 700;
+      word-break: break-word;
     }
 
     .account-meta {
@@ -141,8 +163,18 @@
       color: #ff9f9f;
     }
 
-    .hidden {
-      display: none;
+    .account-actions {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 8px;
+      margin-top: 14px;
+    }
+
+    @media (min-width: 600px) {
+      .account-actions {
+        grid-template-columns:
+          repeat(3, minmax(0, 1fr));
+      }
     }
   </style>
 </head>
@@ -273,13 +305,19 @@
 
 
     let adminSecret =
-      localStorage.getItem("globalblamp_admin_secret") || "";
+      localStorage.getItem(
+        "globalblamp_admin_secret"
+      ) || "";
 
 
     adminSecretInput.value = adminSecret;
 
 
-    function setMessage(element, text, type = "") {
+    function setMessage(
+      element,
+      text,
+      type = ""
+    ) {
       element.textContent = text;
 
       element.classList.remove(
@@ -329,6 +367,8 @@
           "Admin secret saved on this browser.",
           "success"
         );
+
+        loadAccounts();
       }
     );
 
@@ -374,6 +414,8 @@
         "Adding account..."
       );
 
+      addAccountBtn.disabled = true;
+
       try {
         const response = await fetch(
           `${HISTORY_API}/admin/accounts`,
@@ -388,11 +430,13 @@
           }
         );
 
-        const data = await response.json();
+        const data =
+          await response.json();
 
         if (!response.ok) {
           throw new Error(
-            data?.error || "Unable to add account"
+            data?.error ||
+            "Unable to add account"
           );
         }
 
@@ -412,6 +456,9 @@
           error.message,
           "error"
         );
+
+      } finally {
+        addAccountBtn.disabled = false;
       }
     }
 
@@ -434,6 +481,8 @@
 
       accountsList.innerHTML = "";
 
+      refreshBtn.disabled = true;
+
       try {
         const response = await fetch(
           `${HISTORY_API}/admin/accounts`,
@@ -443,11 +492,13 @@
           }
         );
 
-        const data = await response.json();
+        const data =
+          await response.json();
 
         if (!response.ok) {
           throw new Error(
-            data?.error || "Unable to load accounts"
+            data?.error ||
+            "Unable to load accounts"
           );
         }
 
@@ -470,57 +521,349 @@
         }
 
         for (const account of accounts) {
-          const item =
-            document.createElement("div");
-
-          item.className = "account-item";
-
-          const status =
-            Number(account.is_active) === 1
-              ? "Active"
-              : "Disabled";
-
-          const statusClass =
-            Number(account.is_active) === 1
-              ? "status-active"
-              : "status-disabled";
-
-          item.innerHTML = `
-            <div class="account-key">
-              ${escapeHtml(account.key_preview || "Unknown")}
-            </div>
-
-            <div class="account-meta">
-              <div>
-                ID: ${escapeHtml(String(account.id))}
-              </div>
-
-              <div class="${statusClass}">
-                Status: ${status}
-              </div>
-
-              <div>
-                Chats: ${escapeHtml(
-                  String(account.chat_count || 0)
-                )}
-              </div>
-
-              <div>
-                Created: ${escapeHtml(
-                  account.created_at || "-"
-                )}
-              </div>
-
-              <div>
-                Last active: ${escapeHtml(
-                  account.last_active_at || "-"
-                )}
-              </div>
-            </div>
-          `;
-
-          accountsList.appendChild(item);
+          renderAccount(account);
         }
+
+      } catch (error) {
+        setMessage(
+          accountsMessage,
+          error.message,
+          "error"
+        );
+
+      } finally {
+        refreshBtn.disabled = false;
+      }
+    }
+
+
+    function renderAccount(account) {
+      const item =
+        document.createElement("div");
+
+      item.className = "account-item";
+
+
+      const isActive =
+        Number(account.is_active) === 1;
+
+
+      const status =
+        isActive
+          ? "Active"
+          : "Disabled";
+
+
+      const statusClass =
+        isActive
+          ? "status-active"
+          : "status-disabled";
+
+
+      item.innerHTML = `
+        <div class="account-key">
+          ${escapeHtml(
+            account.key_preview || "Unknown"
+          )}
+        </div>
+
+        <div class="account-meta">
+
+          <div>
+            ID:
+            ${escapeHtml(
+              String(account.id)
+            )}
+          </div>
+
+          <div class="${statusClass}">
+            Status: ${status}
+          </div>
+
+          <div>
+            Chats:
+            ${escapeHtml(
+              String(account.chat_count || 0)
+            )}
+          </div>
+
+          <div>
+            Created:
+            ${escapeHtml(
+              account.created_at || "-"
+            )}
+          </div>
+
+          <div>
+            Last active:
+            ${escapeHtml(
+              account.last_active_at || "-"
+            )}
+          </div>
+
+        </div>
+
+        <div class="account-actions">
+
+          <button
+            class="${
+              isActive
+                ? "warning"
+                : "success-button"
+            }"
+            data-action="status"
+          >
+            ${
+              isActive
+                ? "Disable"
+                : "Enable"
+            }
+          </button>
+
+          <button
+            class="secondary"
+            data-action="history"
+          >
+            Delete History
+          </button>
+
+          <button
+            class="danger"
+            data-action="delete"
+          >
+            Delete Account
+          </button>
+
+        </div>
+      `;
+
+
+      const statusButton =
+        item.querySelector(
+          '[data-action="status"]'
+        );
+
+      const historyButton =
+        item.querySelector(
+          '[data-action="history"]'
+        );
+
+      const deleteButton =
+        item.querySelector(
+          '[data-action="delete"]'
+        );
+
+
+      statusButton.addEventListener(
+        "click",
+        () => {
+          setAccountStatus(
+            account,
+            !isActive
+          );
+        }
+      );
+
+
+      historyButton.addEventListener(
+        "click",
+        () => {
+          deleteAccountHistory(account);
+        }
+      );
+
+
+      deleteButton.addEventListener(
+        "click",
+        () => {
+          deleteAccount(account);
+        }
+      );
+
+
+      accountsList.appendChild(item);
+    }
+
+
+    async function setAccountStatus(
+      account,
+      newStatus
+    ) {
+      const actionText =
+        newStatus
+          ? "enable"
+          : "disable";
+
+      const confirmed = confirm(
+        `Are you sure you want to ${actionText} ${account.key_preview}?`
+      );
+
+      if (!confirmed) {
+        return;
+      }
+
+      setMessage(
+        accountsMessage,
+        `${actionText === "enable"
+          ? "Enabling"
+          : "Disabling"} account...`
+      );
+
+      try {
+        const response = await fetch(
+          `${HISTORY_API}/admin/accounts/${account.id}/status`,
+          {
+            method: "POST",
+
+            headers: getAdminHeaders(),
+
+            body: JSON.stringify({
+              is_active: newStatus
+            })
+          }
+        );
+
+        const data =
+          await response.json();
+
+        if (!response.ok) {
+          throw new Error(
+            data?.error ||
+            "Unable to update account"
+          );
+        }
+
+        setMessage(
+          accountsMessage,
+          newStatus
+            ? "Account enabled."
+            : "Account disabled.",
+          "success"
+        );
+
+        await loadAccounts();
+
+      } catch (error) {
+        setMessage(
+          accountsMessage,
+          error.message,
+          "error"
+        );
+      }
+    }
+
+
+    async function deleteAccountHistory(
+      account
+    ) {
+      const confirmed = confirm(
+        `Delete ALL chat history for ${account.key_preview}?\n\nThe API account will remain approved.`
+      );
+
+      if (!confirmed) {
+        return;
+      }
+
+      const secondConfirm = confirm(
+        "This will permanently delete all chats and messages for this account. Continue?"
+      );
+
+      if (!secondConfirm) {
+        return;
+      }
+
+      setMessage(
+        accountsMessage,
+        "Deleting history..."
+      );
+
+      try {
+        const response = await fetch(
+          `${HISTORY_API}/admin/accounts/${account.id}/history`,
+          {
+            method: "DELETE",
+            headers: getAdminHeaders()
+          }
+        );
+
+        const data =
+          await response.json();
+
+        if (!response.ok) {
+          throw new Error(
+            data?.error ||
+            "Unable to delete history"
+          );
+        }
+
+        setMessage(
+          accountsMessage,
+          "Account history deleted.",
+          "success"
+        );
+
+        await loadAccounts();
+
+      } catch (error) {
+        setMessage(
+          accountsMessage,
+          error.message,
+          "error"
+        );
+      }
+    }
+
+
+    async function deleteAccount(
+      account
+    ) {
+      const confirmed = confirm(
+        `Delete ${account.key_preview}?\n\nThis will remove the approved account AND all of its chat history.`
+      );
+
+      if (!confirmed) {
+        return;
+      }
+
+      const secondConfirm = confirm(
+        "This cannot be undone. Delete this account permanently?"
+      );
+
+      if (!secondConfirm) {
+        return;
+      }
+
+      setMessage(
+        accountsMessage,
+        "Deleting account..."
+      );
+
+      try {
+        const response = await fetch(
+          `${HISTORY_API}/admin/accounts/${account.id}`,
+          {
+            method: "DELETE",
+            headers: getAdminHeaders()
+          }
+        );
+
+        const data =
+          await response.json();
+
+        if (!response.ok) {
+          throw new Error(
+            data?.error ||
+            "Unable to delete account"
+          );
+        }
+
+        setMessage(
+          accountsMessage,
+          "Account deleted.",
+          "success"
+        );
+
+        await loadAccounts();
 
       } catch (error) {
         setMessage(
@@ -533,7 +876,7 @@
 
 
     function escapeHtml(value) {
-      return value
+      return String(value)
         .replaceAll("&", "&amp;")
         .replaceAll("<", "&lt;")
         .replaceAll(">", "&gt;")
