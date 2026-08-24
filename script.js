@@ -16,7 +16,8 @@ const loginMessage =
 const settingsBtn = document.getElementById("settingsBtn");
 const closeSettingsBtn = document.getElementById("closeSettingsBtn");
 const saveSettingsBtn = document.getElementById("saveSettingsBtn");
-
+const logoutBtn =
+  document.getElementById("logoutBtn");
 const settingsModal = document.getElementById("settingsModal");
 
 const apiKeyInput = document.getElementById("apiKeyInput");
@@ -40,6 +41,9 @@ const newChatBtn =
 const chatList =
   document.getElementById("chatList");
 
+const currentChatTitle =
+  document.getElementById("currentChatTitle");
+
 const chatArea = document.getElementById("chatArea");
 const messageInput = document.getElementById("messageInput");
 const sendBtn = document.getElementById("sendBtn");
@@ -50,6 +54,11 @@ let currentChatId = null;
 
 let currentApiKey = localStorage.getItem("globalblamp_api_key") || "";
 let currentModel = localStorage.getItem("globalblamp_model") || "gpt-5.6-sol";
+
+function setCurrentChatTitle(title) {
+  currentChatTitle.textContent =
+    title || "New Chat";
+}
 
 function setLoginMessage(text, type = "") {
   loginMessage.textContent = text;
@@ -118,7 +127,25 @@ async function loginWithApiKey(apiKey) {
 showChat();
 
 try {
-  await loadChats();
+  const chats = await loadChats();
+
+  if (chats.length > 0) {
+    await openSavedChat(chats[0]);
+  } else {
+    currentChatId = null;
+    messages = [];
+
+    chatArea.innerHTML = `
+      <div class="welcome-message">
+        <h2>New Chat</h2>
+
+        <p>
+          Start a new conversation.
+        </p>
+      </div>
+    `;
+  }
+
 } catch (error) {
   console.error(
     "Could not load chats after login:",
@@ -170,11 +197,44 @@ function closeSettings() {
   settingsModal.classList.add("hidden");
 }
 
+function logout() {
+  localStorage.removeItem(
+    "globalblamp_api_key"
+  );
+
+  currentApiKey = "";
+  currentChatId = null;
+  messages = [];
+
+  loginApiKeyInput.value = "";
+  apiKeyInput.value = "";
+
+  setCurrentChatTitle("New Chat");
+
+  chatArea.innerHTML = `
+    <div class="welcome-message">
+      <h2>New Chat</h2>
+
+      <p>
+        Start a new conversation.
+      </p>
+    </div>
+  `;
+
+  closeSettings();
+  closeHistory();
+  showLogin();
+
+  setLoginMessage("");
+}
 
 async function saveSettings() {
   const apiKey = apiKeyInput.value.trim();
   const model = modelSelect.value;
 
+  const accountChanged =
+  apiKey !== currentApiKey;
+  
   if (!apiKey) {
     alert("Please enter your API key.");
     return;
@@ -208,20 +268,82 @@ async function saveSettings() {
       );
     }
 
-    currentApiKey = apiKey;
-    currentModel = model;
+const modelChanged =
+  model !== currentModel;
 
-    localStorage.setItem(
-      "globalblamp_api_key",
-      currentApiKey
+currentApiKey = apiKey;
+currentModel = model;
+
+localStorage.setItem(
+  "globalblamp_api_key",
+  currentApiKey
+);
+
+localStorage.setItem(
+  "globalblamp_model",
+  currentModel
+);
+
+if (accountChanged) {
+  currentChatId = null;
+  messages = [];
+
+  setCurrentChatTitle("New Chat");
+
+  chatArea.innerHTML = `
+    <div class="welcome-message">
+      <h2>New Chat</h2>
+
+      <p>
+        Start a new conversation.
+      </p>
+    </div>
+  `;
+
+  try {
+    const chats = await loadChats();
+
+    if (chats.length > 0) {
+      await openSavedChat(chats[0]);
+    }
+  } catch (error) {
+    console.error(
+      "Could not load chats after account switch:",
+      error
     );
+  }
 
-    localStorage.setItem(
-      "globalblamp_model",
-      currentModel
+  closeSettings();
+  return;
+}
+    
+if (modelChanged && currentChatId) {
+  currentChatId = null;
+  messages = [];
+
+  setCurrentChatTitle("New Chat");
+
+  chatArea.innerHTML = `
+    <div class="welcome-message">
+      <h2>New Chat</h2>
+
+      <p>
+        Start a new conversation.
+      </p>
+    </div>
+  `;
+
+  try {
+    await loadChats();
+  } catch (error) {
+    console.error(
+      "Could not refresh chats after model change:",
+      error
     );
+  }
+}
 
-    closeSettings();
+closeSettings();
 
   } catch (error) {
     alert(error.message);
@@ -395,20 +517,22 @@ deleteBtn.addEventListener(
     try {
       await deleteCloudChat(chat.id);
 
-      if (currentChatId === chat.id) {
-        currentChatId = null;
-        messages = [];
+if (currentChatId === chat.id) {
+  currentChatId = null;
+  messages = [];
 
-        chatArea.innerHTML = `
-          <div class="welcome-message">
-            <h2>New Chat</h2>
+  setCurrentChatTitle("New Chat");
 
-            <p>
-              Start a new conversation.
-            </p>
-          </div>
-        `;
-      }
+  chatArea.innerHTML = `
+    <div class="welcome-message">
+      <h2>New Chat</h2>
+
+      <p>
+        Start a new conversation.
+      </p>
+    </div>
+  `;
+}
 
       await loadChats();
 
@@ -428,10 +552,6 @@ deleteBtn.addEventListener(
     }
   }
 );
-
-
-button.appendChild(deleteBtn);
-
 
 button.addEventListener(
   "click",
@@ -458,8 +578,17 @@ button.addEventListener(
   }
 );
 
+const row =
+  document.createElement("div");
 
-    chatList.appendChild(button);
+row.className =
+  "chat-list-row";
+
+row.appendChild(button);
+row.appendChild(deleteBtn);
+
+chatList.appendChild(row);
+    
   });
 }
 
@@ -501,10 +630,14 @@ async function openSavedChat(chat) {
   const savedMessages =
     await loadCloudMessages(chat.id);
 
-  currentChatId = chat.id;
+currentChatId = chat.id;
 
-  currentModel =
-    chat.model || currentModel;
+setCurrentChatTitle(
+  chat.title || "New Chat"
+);
+
+currentModel =
+  chat.model || currentModel;
 
   localStorage.setItem(
     "globalblamp_model",
@@ -590,7 +723,20 @@ async function deleteCloudChat(chatId) {
   return true;
 }
 
-async function createCloudChat() {
+function makeChatTitle(text) {
+  const cleanTitle =
+    text
+      .replace(/\s+/g, " ")
+      .trim();
+
+  if (!cleanTitle) {
+    return "New Chat";
+  }
+
+  return cleanTitle.slice(0, 60);
+}
+
+async function createCloudChat(firstMessage) {
   const response = await fetch(
     `${HISTORY_API}/chats`,
     {
@@ -602,7 +748,7 @@ async function createCloudChat() {
       },
 
       body: JSON.stringify({
-        title: "New Chat",
+        title: makeChatTitle(firstMessage),
         model: currentModel
       })
     }
@@ -623,6 +769,10 @@ async function createCloudChat() {
   }
 
 currentChatId = data.chat.id;
+
+setCurrentChatTitle(
+  data.chat.title || makeChatTitle(firstMessage)
+);
 
 try {
   await loadChats();
@@ -707,12 +857,12 @@ async function sendMessage() {
   resizeTextarea();
 
 
-  try {
-    if (!currentChatId) {
-      await createCloudChat();
-    }
+try {
+  if (!currentChatId) {
+    await createCloudChat(userText);
+  }
 
-  } catch (error) {
+} catch (error) {
     alert(error.message);
     return;
   }
@@ -935,6 +1085,8 @@ newChatBtn.addEventListener(
     currentChatId = null;
     messages = [];
 
+    setCurrentChatTitle("New Chat");
+
     chatArea.innerHTML = `
       <div class="welcome-message">
         <h2>New Chat</h2>
@@ -962,12 +1114,15 @@ closeSettingsBtn.addEventListener(
   closeSettings
 );
 
-
 saveSettingsBtn.addEventListener(
   "click",
   saveSettings
 );
 
+logoutBtn.addEventListener(
+  "click",
+  logout
+);
 
 settingsModal.addEventListener(
   "click",
