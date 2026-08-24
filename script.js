@@ -855,101 +855,263 @@ try {
   );
 
 
-  try {
-    const response = await fetch(
-  "/api/chat",
-  {
-    method: "POST",
+try {
+  const response = await fetch(
+    "/api/chat",
+    {
+      method: "POST",
 
-    headers: {
-      "Content-Type": "application/json",
-      "Authorization": `Bearer ${currentApiKey}`
-    },
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": `Bearer ${currentApiKey}`
+      },
 
-    body: JSON.stringify({
-      model: currentModel,
-      messages: messages
-    })
-  }
-);
+      body: JSON.stringify({
+        model: currentModel,
+        messages: messages
+      })
+    }
+  );
 
 
-    let data;
+  if (!response.ok) {
+    let errorMessage =
+      `API Error ${response.status}`;
 
     try {
-      data = await response.json();
-    } catch {
-      data = null;
-    }
+      const errorData =
+        await response.json();
 
-
-    if (!response.ok) {
-      let errorMessage = `API Error ${response.status}`;
-
-      if (data?.error?.message) {
-        errorMessage = data.error.message;
+      if (errorData?.error?.message) {
+        errorMessage =
+          errorData.error.message;
       }
 
-      throw new Error(errorMessage);
+    } catch {
+      try {
+        const errorText =
+          await response.text();
+
+        if (errorText) {
+          errorMessage = errorText;
+        }
+
+      } catch {
+        // Keep the normal API error.
+      }
+    }
+
+    throw new Error(errorMessage);
+  }
+
+
+  if (!response.body) {
+    throw new Error(
+      "Streaming response is unavailable."
+    );
+  }
+
+
+  const reader =
+    response.body.getReader();
+
+  const decoder =
+    new TextDecoder();
+
+
+  let assistantText = "";
+  let buffer = "";
+
+
+  assistantBubble.textContent = "";
+
+
+  while (true) {
+    const {
+      done,
+      value
+    } = await reader.read();
+
+
+    if (done) {
+      break;
     }
 
 
-    const assistantText =
-      data?.choices?.[0]?.message?.content;
-
-
-    if (!assistantText) {
-      throw new Error(
-        "The API returned an empty response."
-      );
-    }
-
-
-    assistantBubble.textContent = assistantText;
-
-
-    messages.push({
-      role: "assistant",
-      content: assistantText
-    });
-
-
-    try {
-      await saveCloudMessage(
-        "assistant",
-        assistantText
-      );
-
-    } catch (error) {
-      console.error(
-        "Could not save assistant message:",
-        error
-      );
-    }
-
-
-  } catch (error) {
-
-    assistantBubble.textContent =
-      `Error: ${error.message}`;
-
-    assistantBubble.classList.add(
-      "error-message"
+    buffer += decoder.decode(
+      value,
+      {
+        stream: true
+      }
     );
 
-    console.error(error);
 
-  } finally {
+    const lines =
+      buffer.split("\n");
 
-    setLoading(false);
 
-    messageInput.focus();
+    buffer = lines.pop() || "";
 
-    chatArea.scrollTop =
-      chatArea.scrollHeight;
+
+    for (const rawLine of lines) {
+      const line =
+        rawLine.trim();
+
+
+      if (!line.startsWith("data:")) {
+        continue;
+      }
+
+
+      const dataText =
+        line.slice(5).trim();
+
+
+      if (!dataText) {
+        continue;
+      }
+
+
+      if (dataText === "[DONE]") {
+        continue;
+      }
+
+
+      let chunkData;
+
+      try {
+        chunkData =
+          JSON.parse(dataText);
+      } catch {
+        continue;
+      }
+
+
+      const chunk =
+        chunkData?.choices?.[0]?.delta?.content;
+
+
+      if (!chunk) {
+        continue;
+      }
+
+
+      assistantText += chunk;
+
+      assistantBubble.textContent =
+        assistantText;
+
+
+      chatArea.scrollTop =
+        chatArea.scrollHeight;
+    }
   }
-}
 
+
+  /*
+    Flush any remaining decoder data.
+  */
+
+  buffer += decoder.decode();
+
+
+  if (buffer.trim()) {
+    const remainingLines =
+      buffer.split("\n");
+
+
+    for (const rawLine of remainingLines) {
+      const line =
+        rawLine.trim();
+
+
+      if (!line.startsWith("data:")) {
+        continue;
+      }
+
+
+      const dataText =
+        line.slice(5).trim();
+
+
+      if (
+        !dataText ||
+        dataText === "[DONE]"
+      ) {
+        continue;
+      }
+
+
+      try {
+        const chunkData =
+          JSON.parse(dataText);
+
+        const chunk =
+          chunkData?.choices?.[0]?.delta?.content;
+
+
+        if (chunk) {
+          assistantText += chunk;
+
+          assistantBubble.textContent =
+            assistantText;
+        }
+
+      } catch {
+        // Ignore incomplete final SSE data.
+      }
+    }
+  }
+
+
+  if (!assistantText) {
+    throw new Error(
+      "The API returned an empty response."
+    );
+  }
+
+
+  messages.push({
+    role: "assistant",
+    content: assistantText
+  });
+
+
+  try {
+    await saveCloudMessage(
+      "assistant",
+      assistantText
+    );
+
+  } catch (error) {
+    console.error(
+      "Could not save assistant message:",
+      error
+    );
+  }
+
+
+} catch (error) {
+
+  assistantBubble.textContent =
+    `Error: ${error.message}`;
+
+  assistantBubble.classList.add(
+    "error-message"
+  );
+
+  console.error(error);
+
+} finally {
+
+  setLoading(false);
+
+  messageInput.focus();
+
+  chatArea.scrollTop =
+    chatArea.scrollHeight;
+}
+}
 
 function resizeTextarea() {
   messageInput.style.height = "auto";
