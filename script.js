@@ -60,6 +60,23 @@ function setCurrentChatTitle(title) {
     title || "New Chat";
 }
 
+function resetToNewChat() {
+  currentChatId = null;
+  messages = [];
+
+  setCurrentChatTitle("New Chat");
+
+  chatArea.innerHTML = `
+    <div class="welcome-message">
+      <h2>New Chat</h2>
+
+      <p>
+        Start a new conversation.
+      </p>
+    </div>
+  `;
+}
+
 function setLoginMessage(text, type = "") {
   loginMessage.textContent = text;
 
@@ -131,20 +148,9 @@ try {
 
   if (chats.length > 0) {
     await openSavedChat(chats[0]);
-  } else {
-    currentChatId = null;
-    messages = [];
-
-    chatArea.innerHTML = `
-      <div class="welcome-message">
-        <h2>New Chat</h2>
-
-        <p>
-          Start a new conversation.
-        </p>
-      </div>
-    `;
-  }
+ } else {
+  resetToNewChat();
+}
 
 } catch (error) {
   console.error(
@@ -202,24 +208,12 @@ function logout() {
     "globalblamp_api_key"
   );
 
-  currentApiKey = "";
-  currentChatId = null;
-  messages = [];
+currentApiKey = "";
 
-  loginApiKeyInput.value = "";
-  apiKeyInput.value = "";
+loginApiKeyInput.value = "";
+apiKeyInput.value = "";
 
-  setCurrentChatTitle("New Chat");
-
-  chatArea.innerHTML = `
-    <div class="welcome-message">
-      <h2>New Chat</h2>
-
-      <p>
-        Start a new conversation.
-      </p>
-    </div>
-  `;
+resetToNewChat();
 
   closeSettings();
   closeHistory();
@@ -285,20 +279,7 @@ localStorage.setItem(
 );
 
 if (accountChanged) {
-  currentChatId = null;
-  messages = [];
-
-  setCurrentChatTitle("New Chat");
-
-  chatArea.innerHTML = `
-    <div class="welcome-message">
-      <h2>New Chat</h2>
-
-      <p>
-        Start a new conversation.
-      </p>
-    </div>
-  `;
+  resetToNewChat();
 
   try {
     const chats = await loadChats();
@@ -318,20 +299,7 @@ if (accountChanged) {
 }
     
 if (modelChanged && currentChatId) {
-  currentChatId = null;
-  messages = [];
-
-  setCurrentChatTitle("New Chat");
-
-  chatArea.innerHTML = `
-    <div class="welcome-message">
-      <h2>New Chat</h2>
-
-      <p>
-        Start a new conversation.
-      </p>
-    </div>
-  `;
+  resetToNewChat();
 
   try {
     await loadChats();
@@ -518,20 +486,7 @@ deleteBtn.addEventListener(
       await deleteCloudChat(chat.id);
 
 if (currentChatId === chat.id) {
-  currentChatId = null;
-  messages = [];
-
-  setCurrentChatTitle("New Chat");
-
-  chatArea.innerHTML = `
-    <div class="welcome-message">
-      <h2>New Chat</h2>
-
-      <p>
-        Start a new conversation.
-      </p>
-    </div>
-  `;
+  resetToNewChat();
 }
 
       await loadChats();
@@ -1082,20 +1037,7 @@ historyBackdrop.addEventListener(
 newChatBtn.addEventListener(
   "click",
   () => {
-    currentChatId = null;
-    messages = [];
-
-    setCurrentChatTitle("New Chat");
-
-    chatArea.innerHTML = `
-      <div class="welcome-message">
-        <h2>New Chat</h2>
-
-        <p>
-          Start a new conversation.
-        </p>
-      </div>
-    `;
+    resetToNewChat();
 
     closeHistory();
 
