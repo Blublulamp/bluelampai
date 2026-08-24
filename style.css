@@ -380,3 +380,6 @@ button {
 .login-message.success {
   color: #8effb0;
 }
+.hidden {
+  display: none !important;
+}
