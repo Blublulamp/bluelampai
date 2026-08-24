@@ -74,6 +74,9 @@ export default async function handler(req, res) {
       Step 2:
       Only approved accounts reach
       the real AI API.
+
+      stream: true tells the AI API
+      to send the answer gradually.
     */
 
     const response = await fetch(
@@ -83,28 +86,96 @@ export default async function handler(req, res) {
 
         headers: {
           "Content-Type": "application/json",
-          "Authorization": authorization
+          "Authorization": authorization,
+          "Accept": "text/event-stream"
         },
 
-        body: JSON.stringify(req.body)
+        body: JSON.stringify({
+          ...req.body,
+          stream: true
+        })
       }
     );
 
 
-    const text =
-      await response.text();
+    /*
+      If the upstream AI request fails,
+      return its normal error first.
+    */
+
+    if (!response.ok) {
+      const text =
+        await response.text();
+
+      res.status(response.status);
+
+      res.setHeader(
+        "Content-Type",
+        response.headers.get("content-type") ||
+          "application/json"
+      );
+
+      return res.send(text);
+    }
 
 
-    res.status(response.status);
+    if (!response.body) {
+      return res.status(502).json({
+        error: {
+          message: "AI stream was unavailable"
+        }
+      });
+    }
+
+
+    /*
+      Step 3:
+      Forward the upstream stream
+      directly to the browser.
+    */
+
+    res.status(200);
 
     res.setHeader(
       "Content-Type",
       response.headers.get("content-type") ||
-        "application/json"
+        "text/event-stream; charset=utf-8"
+    );
+
+    res.setHeader(
+      "Cache-Control",
+      "no-cache, no-transform"
+    );
+
+    res.setHeader(
+      "Connection",
+      "keep-alive"
     );
 
 
-    return res.send(text);
+    const reader =
+      response.body.getReader();
+
+
+    while (true) {
+      const {
+        done,
+        value
+      } = await reader.read();
+
+
+      if (done) {
+        break;
+      }
+
+
+      res.write(
+        Buffer.from(value)
+      );
+    }
+
+
+    return res.end();
 
 
   } catch (error) {
@@ -113,10 +184,16 @@ export default async function handler(req, res) {
       error
     );
 
-    return res.status(500).json({
-      error: {
-        message: "Proxy request failed"
-      }
-    });
+
+    if (!res.headersSent) {
+      return res.status(500).json({
+        error: {
+          message: "Proxy request failed"
+        }
+      });
+    }
+
+
+    return res.end();
   }
 }
