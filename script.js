@@ -161,21 +161,21 @@ async function sendMessage() {
 
   try {
     const response = await fetch(
-      `${API_BASE_URL}/chat/completions`,
-      {
-        method: "POST",
+  "/api/chat",
+  {
+    method: "POST",
 
-        headers: {
-          "Content-Type": "application/json",
-          "Authorization": `Bearer ${currentApiKey}`
-        },
+    headers: {
+      "Content-Type": "application/json",
+      "Authorization": `Bearer ${currentApiKey}`
+    },
 
-        body: JSON.stringify({
-          model: currentModel,
-          messages: messages
-        })
-      }
-    );
+    body: JSON.stringify({
+      model: currentModel,
+      messages: messages
+    })
+  }
+);
 
 
     let data;
