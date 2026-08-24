@@ -1,4 +1,4 @@
-const API_BASE_URL = "https://globalblamp.vercel.app/v1";
+const API_BASE_URL = "https://ai.geraikita.com/v1";
 
 const settingsBtn = document.getElementById("settingsBtn");
 const closeSettingsBtn = document.getElementById("closeSettingsBtn");
