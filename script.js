@@ -12,6 +12,10 @@ const loginBtn =
 
 const loginMessage =
   document.getElementById("loginMessage");
+const telegramLoginBtn =
+  document.getElementById(
+    "telegramLoginBtn"
+  );
 
 const settingsBtn = document.getElementById("settingsBtn");
 const closeSettingsBtn = document.getElementById("closeSettingsBtn");
@@ -102,10 +106,43 @@ function showChat() {
   chatApp.classList.remove("hidden");
 }
 
-async function onTelegramAuth(user) {
+async function handleTelegramOidcResult(
+  result
+) {
+  if (!result) {
+    setLoginMessage(
+      "Telegram login failed.",
+      "error"
+    );
+
+    return;
+  }
+
+
+  if (result.error) {
+    setLoginMessage(
+      result.error,
+      "error"
+    );
+
+    return;
+  }
+
+
+  if (!result.id_token) {
+    setLoginMessage(
+      "Telegram did not return an ID token.",
+      "error"
+    );
+
+    return;
+  }
+
+
   setLoginMessage(
     "Checking Telegram account..."
   );
+
 
   try {
     const response = await fetch(
@@ -114,10 +151,14 @@ async function onTelegramAuth(user) {
         method: "POST",
 
         headers: {
-          "Content-Type": "application/json"
+          "Content-Type":
+            "application/json"
         },
 
-        body: JSON.stringify(user)
+        body: JSON.stringify({
+          id_token:
+            result.id_token
+        })
       }
     );
 
@@ -125,7 +166,9 @@ async function onTelegramAuth(user) {
     let data = null;
 
     try {
-      data = await response.json();
+      data =
+        await response.json();
+
     } catch {
       data = null;
     }
@@ -157,16 +200,13 @@ async function onTelegramAuth(user) {
       error
     );
 
+
     setLoginMessage(
       error.message,
       "error"
     );
   }
 }
-
-
-window.onTelegramAuth =
-  onTelegramAuth;
 
 async function loginWithApiKey(apiKey) {
   setLoginMessage("Checking account...");
@@ -1335,6 +1375,8 @@ messageInput.addEventListener(
 
 
 async function startApp() {
+  setupTelegramLogin();
+
   loadSettings();
 
   if (!currentApiKey) {
@@ -1356,6 +1398,38 @@ async function startApp() {
 
     loginApiKeyInput.value = "";
   }
+}
+
+function setupTelegramLogin() {
+  if (
+    !window.Telegram ||
+    !window.Telegram.Login
+  ) {
+    console.error(
+      "Telegram Login library did not load."
+    );
+
+    return;
+  }
+
+
+  Telegram.Login.init(
+    {
+      client_id: 8741110567,
+      scope: ["profile"],
+      lang: "en"
+    },
+
+    handleTelegramOidcResult
+  );
+
+
+  telegramLoginBtn.addEventListener(
+    "click",
+    () => {
+      Telegram.Login.open();
+    }
+  );
 }
 
 
