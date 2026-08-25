@@ -102,6 +102,71 @@ function showChat() {
   chatApp.classList.remove("hidden");
 }
 
+async function onTelegramAuth(user) {
+  setLoginMessage(
+    "Checking Telegram account..."
+  );
+
+  try {
+    const response = await fetch(
+      `${HISTORY_API}/auth/telegram`,
+      {
+        method: "POST",
+
+        headers: {
+          "Content-Type": "application/json"
+        },
+
+        body: JSON.stringify(user)
+      }
+    );
+
+
+    let data = null;
+
+    try {
+      data = await response.json();
+    } catch {
+      data = null;
+    }
+
+
+    if (!response.ok) {
+      throw new Error(
+        data?.error ||
+        "Telegram login failed"
+      );
+    }
+
+
+    console.log(
+      "Telegram login successful:",
+      data
+    );
+
+
+    setLoginMessage(
+      "Telegram login successful.",
+      "success"
+    );
+
+
+  } catch (error) {
+    console.error(
+      "Telegram login error:",
+      error
+    );
+
+    setLoginMessage(
+      error.message,
+      "error"
+    );
+  }
+}
+
+
+window.onTelegramAuth =
+  onTelegramAuth;
 
 async function loginWithApiKey(apiKey) {
   setLoginMessage("Checking account...");
