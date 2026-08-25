@@ -182,17 +182,39 @@ async function handleTelegramOidcResult(
     }
 
 
-    console.log(
-      "Telegram login successful:",
-      data
-    );
+console.log(
+  "Telegram login successful:",
+  data
+);
 
 
-    setLoginMessage(
-      "Telegram login successful.",
-      "success"
-    );
+localStorage.setItem(
+  "globalblamp_session_token",
+  data.session_token
+);
 
+
+localStorage.setItem(
+  "globalblamp_telegram_user",
+  JSON.stringify(data.user)
+);
+
+
+setLoginMessage(
+  "Telegram login successful.",
+  "success"
+);
+
+
+showChat();
+
+
+if (
+  !data.api_access ||
+  !data.api_access.active
+) {
+  openSettings();
+}
 
   } catch (error) {
     console.error(
