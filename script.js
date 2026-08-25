@@ -56,8 +56,20 @@ const sendBtn = document.getElementById("sendBtn");
 let messages = [];
 let currentChatId = null;
 
-let currentApiKey = localStorage.getItem("globalblamp_api_key") || "";
-let currentModel = localStorage.getItem("globalblamp_model") || "gpt-5.6-sol";
+let currentApiKey =
+  localStorage.getItem(
+    "globalblamp_api_key"
+  ) || "";
+
+let currentSessionToken =
+  localStorage.getItem(
+    "globalblamp_session_token"
+  ) || "";
+
+let currentModel =
+  localStorage.getItem(
+    "globalblamp_model"
+  ) || "gpt-5.6-sol";
 
 function setCurrentChatTitle(title) {
   currentChatTitle.textContent =
@@ -188,11 +200,19 @@ console.log(
 );
 
 
+currentSessionToken =
+  data.session_token;
+
+
 localStorage.setItem(
   "globalblamp_session_token",
-  data.session_token
+  currentSessionToken
 );
-
+    
+localStorage.setItem(
+  "globalblamp_unlicensed_login_at",
+  String(Date.now())
+);
 
 localStorage.setItem(
   "globalblamp_telegram_user",
@@ -335,12 +355,27 @@ function logout() {
     "globalblamp_api_key"
   );
 
-currentApiKey = "";
+  localStorage.removeItem(
+    "globalblamp_session_token"
+  );
 
-loginApiKeyInput.value = "";
-apiKeyInput.value = "";
+  localStorage.removeItem(
+    "globalblamp_telegram_user"
+  );
+  localStorage.removeItem(
+    "globalblamp_unlicensed_login_at"
+  );
 
-resetToNewChat();
+
+  currentApiKey = "";
+  currentSessionToken = "";
+
+
+  loginApiKeyInput.value = "";
+  apiKeyInput.value = "";
+
+
+  resetToNewChat();
 
   closeSettings();
   closeHistory();
@@ -369,25 +404,84 @@ async function saveSettings() {
   saveSettingsBtn.disabled = true;
   saveSettingsBtn.textContent = "Checking...";
 
-  try {
-    const response = await fetch(
+try {
+  let response;
+
+
+  if (currentSessionToken) {
+    /*
+      Telegram account mode.
+
+      The Telegram session identifies
+      the website account.
+
+      The gk key is only the license.
+    */
+
+    response = await fetch(
+      `${HISTORY_API}/account/link-api`,
+      {
+        method: "POST",
+
+        headers: {
+          "Content-Type":
+            "application/json",
+
+          "Authorization":
+            `Bearer ${currentSessionToken}`
+        },
+
+        body: JSON.stringify({
+          api_key: apiKey
+        })
+      }
+    );
+
+  } else {
+    /*
+      Temporary legacy API login.
+
+      Keep this working until the full
+      Telegram migration is complete.
+    */
+
+    response = await fetch(
       `${HISTORY_API}/account`,
       {
         method: "POST",
 
         headers: {
-          "Authorization": `Bearer ${apiKey}`
+          "Authorization":
+            `Bearer ${apiKey}`
         }
       }
     );
+  }
 
-    const data = await response.json();
 
-    if (!response.ok) {
-      throw new Error(
-        data?.error || "This API key cannot be used."
-      );
-    }
+  let data = null;
+
+
+  try {
+    data =
+      await response.json();
+
+  } catch {
+    data = null;
+  }
+
+
+  if (!response.ok) {
+    throw new Error(
+      data?.error ||
+      "This API key cannot be used."
+    );
+  }
+if (currentSessionToken) {
+  localStorage.removeItem(
+    "globalblamp_unlicensed_login_at"
+  );
+}
 
 const modelChanged =
   model !== currentModel;
@@ -1401,20 +1495,92 @@ async function startApp() {
 
   loadSettings();
 
+
+  /*
+    Telegram account without an API yet:
+    allow the login to survive refresh
+    for 30 minutes.
+  */
+
+  if (
+    currentSessionToken &&
+    !currentApiKey
+  ) {
+    const loginAt =
+      Number(
+        localStorage.getItem(
+          "globalblamp_unlicensed_login_at"
+        ) || 0
+      );
+
+
+    const thirtyMinutes =
+      30 * 60 * 1000;
+
+
+    const stillValid =
+      loginAt > 0 &&
+      Date.now() - loginAt <
+        thirtyMinutes;
+
+
+    if (stillValid) {
+      showChat();
+      openSettings();
+      return;
+    }
+
+
+    /*
+      Temporary unlicensed login expired.
+    */
+
+    localStorage.removeItem(
+      "globalblamp_session_token"
+    );
+
+    localStorage.removeItem(
+      "globalblamp_telegram_user"
+    );
+
+    localStorage.removeItem(
+      "globalblamp_unlicensed_login_at"
+    );
+
+
+    currentSessionToken = "";
+
+
+    showLogin();
+    return;
+  }
+
+
+  /*
+    No Telegram session and no API.
+  */
+
   if (!currentApiKey) {
     showLogin();
     return;
   }
 
-  loginApiKeyInput.value = currentApiKey;
+
+  loginApiKeyInput.value =
+    currentApiKey;
+
 
   const success =
-    await loginWithApiKey(currentApiKey);
+    await loginWithApiKey(
+      currentApiKey
+    );
+
 
   if (!success) {
     localStorage.removeItem(
       "globalblamp_api_key"
     );
+
 
     currentApiKey = "";
 
