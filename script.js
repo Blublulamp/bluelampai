@@ -70,7 +70,12 @@ let currentModel =
   localStorage.getItem(
     "globalblamp_model"
   ) || "gpt-5.6-sol";
-
+function getHistoryAuthToken() {
+  return (
+    currentSessionToken ||
+    currentApiKey
+  );
+}
 function setCurrentChatTitle(title) {
   currentChatTitle.textContent =
     title || "New Chat";
@@ -601,7 +606,8 @@ async function loadChats() {
       method: "GET",
 
       headers: {
-        "Authorization": `Bearer ${currentApiKey}`
+        "Authorization":
+          `Bearer ${getHistoryAuthToken()}`
       }
     }
   );
@@ -775,7 +781,8 @@ async function loadCloudMessages(chatId) {
       method: "GET",
 
       headers: {
-        "Authorization": `Bearer ${currentApiKey}`
+        "Authorization":
+          `Bearer ${getHistoryAuthToken()}`
       }
     }
   );
@@ -877,7 +884,8 @@ async function deleteCloudChat(chatId) {
       method: "DELETE",
 
       headers: {
-        "Authorization": `Bearer ${currentApiKey}`
+        "Authorization":
+          `Bearer ${getHistoryAuthToken()}`
       }
     }
   );
@@ -920,7 +928,8 @@ async function createCloudChat(firstMessage) {
 
       headers: {
         "Content-Type": "application/json",
-        "Authorization": `Bearer ${currentApiKey}`
+        "Authorization":
+          `Bearer ${getHistoryAuthToken()}`
       },
 
       body: JSON.stringify({
@@ -974,7 +983,8 @@ async function saveCloudMessage(role, content) {
 
       headers: {
         "Content-Type": "application/json",
-        "Authorization": `Bearer ${currentApiKey}`
+        "Authorization":
+          `Bearer ${getHistoryAuthToken()}`
       },
 
       body: JSON.stringify({
