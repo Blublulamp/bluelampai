@@ -27,14 +27,13 @@
 
 <div id="telegramLoginContainer">
 
-  <script
-    async
-    src="https://telegram.org/js/telegram-widget.js?22"
-    data-telegram-login="Blamp_ai_bot"
-    data-size="large"
-    data-userpic="true"
-    data-onauth="onTelegramAuth(user)"
-  ></script>
+  <button
+    id="telegramLoginBtn"
+    class="primary-button"
+    type="button"
+  >
+    Continue with Telegram
+  </button>
 
 </div>
 
@@ -298,7 +297,7 @@
 
   </div>
 
-
+  <script src="https://telegram.org/js/telegram-login.js"></script>
   <script src="script.js"></script>
 
 </body>
