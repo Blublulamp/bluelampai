@@ -4,12 +4,6 @@ const HISTORY_API = "https://history.bluelamp.workers.dev";
 const loginScreen = document.getElementById("loginScreen");
 const chatApp = document.getElementById("chatApp");
 
-const loginApiKeyInput =
-  document.getElementById("loginApiKeyInput");
-
-const loginBtn =
-  document.getElementById("loginBtn");
-
 const loginMessage =
   document.getElementById("loginMessage");
 const telegramLoginBtn =
@@ -347,8 +341,6 @@ function logout() {
   currentApiKey = "";
   currentSessionToken = "";
 
-
-  loginApiKeyInput.value = "";
   apiKeyInput.value = "";
 
 
@@ -1458,8 +1450,6 @@ if (response.status === 401) {
   currentSessionToken = "";
   currentApiKey = "";
 
-
-  loginApiKeyInput.value = "";
   apiKeyInput.value = "";
 
 
@@ -1584,8 +1574,6 @@ if (!stillValid) {
   currentSessionToken = "";
   currentApiKey = "";
 
-
-  loginApiKeyInput.value = "";
   apiKeyInput.value = "";
 
 
