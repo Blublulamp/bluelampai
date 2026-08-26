@@ -263,21 +263,14 @@ if (
   return;
 }
 
-
 /*
   Telegram account is valid,
   but it does not have an active
   API license yet.
 
-  Start the temporary 30-minute
-  unlicensed login timer.
+  Keep the Telegram identity signed in
+  and ask the user to connect an API.
 */
-
-localStorage.setItem(
-  "globalblamp_unlicensed_login_at",
-  String(Date.now())
-);
-
 
 openSettings();
 
@@ -1526,74 +1519,17 @@ if (response.status === 401) {
       }
 
 
-      /*
-        No active API.
+/*
+  Telegram session itself is valid.
 
-        If this is a brand-new Telegram
-        login that has never attached an
-        API yet, keep the existing
-        30-minute temporary rule.
-      */
+  An API being missing, disabled,
+  expired or unavailable must NOT
+  log the Telegram account out.
+*/
 
-      const loginAt =
-        Number(
-          localStorage.getItem(
-            "globalblamp_unlicensed_login_at"
-          ) || 0
-        );
-
-
-      if (loginAt > 0) {
-        const thirtyMinutes =
-          30 * 60 * 1000;
-
-
-        const stillValid =
-          Date.now() - loginAt <
-          thirtyMinutes;
-
-
-if (!stillValid) {
-  localStorage.removeItem(
-    "globalblamp_session_token"
-  );
-
-  localStorage.removeItem(
-    "globalblamp_telegram_user"
-  );
-
-  localStorage.removeItem(
-    "globalblamp_unlicensed_login_at"
-  );
-
-  localStorage.removeItem(
-    "globalblamp_api_key"
-  );
-
-
-  currentSessionToken = "";
-  currentApiKey = "";
-
-  apiKeyInput.value = "";
-
-
-  showLogin();
-  return;
-}
-
-
-      /*
-        Telegram session itself is valid.
-
-        An API being missing, disabled,
-        expired or unavailable must NOT
-        log the Telegram account out.
-      */
-
-      showChat();
-      openSettings();
-      return;
-      }
+showChat();
+openSettings();
+return;
 
 
     } catch (error) {
