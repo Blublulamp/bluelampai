@@ -71,10 +71,7 @@ let currentModel =
     "globalblamp_model"
   ) || "gpt-5.6-sol";
 function getHistoryAuthToken() {
-  return (
-    currentSessionToken ||
-    currentApiKey
-  );
+  return currentSessionToken;
 }
 function setCurrentChatTitle(title) {
   currentChatTitle.textContent =
@@ -213,11 +210,7 @@ localStorage.setItem(
   "globalblamp_session_token",
   currentSessionToken
 );
-    
-localStorage.setItem(
-  "globalblamp_unlicensed_login_at",
-  String(Date.now())
-);
+
 
 localStorage.setItem(
   "globalblamp_telegram_user",
@@ -234,12 +227,65 @@ setLoginMessage(
 showChat();
 
 
+/*
+  Active API already linked.
+
+  This is a normal licensed Telegram
+  account, so it must NOT use the
+  temporary 30-minute timer.
+*/
+
 if (
-  !data.api_access ||
-  !data.api_access.active
+  data.api_access &&
+  data.api_access.active
 ) {
-  openSettings();
+  localStorage.removeItem(
+    "globalblamp_unlicensed_login_at"
+  );
+
+
+  try {
+    const chats =
+      await loadChats();
+
+
+    if (chats.length > 0) {
+      await openSavedChat(
+        chats[0]
+      );
+
+    } else {
+      resetToNewChat();
+    }
+
+  } catch (error) {
+    console.error(
+      "Could not load chats after Telegram login:",
+      error
+    );
+  }
+
+
+  return;
 }
+
+
+/*
+  Telegram account is valid,
+  but it does not have an active
+  API license yet.
+
+  Start the temporary 30-minute
+  unlicensed login timer.
+*/
+
+localStorage.setItem(
+  "globalblamp_unlicensed_login_at",
+  String(Date.now())
+);
+
+
+openSettings();
 
   } catch (error) {
     console.error(
@@ -252,80 +298,6 @@ if (
       error.message,
       "error"
     );
-  }
-}
-
-async function loginWithApiKey(apiKey) {
-  setLoginMessage("Checking account...");
-
-  loginBtn.disabled = true;
-  loginApiKeyInput.disabled = true;
-
-  try {
-    const response = await fetch(
-      `${HISTORY_API}/account`,
-      {
-        method: "POST",
-
-        headers: {
-          "Authorization": `Bearer ${apiKey}`
-        }
-      }
-    );
-
-    const data = await response.json();
-
-    if (!response.ok) {
-      throw new Error(
-        data?.error || "Unable to login"
-      );
-    }
-
-    currentApiKey = apiKey;
-
-    localStorage.setItem(
-      "globalblamp_api_key",
-      currentApiKey
-    );
-
-    setLoginMessage(
-      "Login successful.",
-      "success"
-    );
-
-showChat();
-
-try {
-  const chats = await loadChats();
-
-  if (chats.length > 0) {
-    await openSavedChat(chats[0]);
- } else {
-  resetToNewChat();
-}
-
-} catch (error) {
-  console.error(
-    "Could not load chats after login:",
-    error
-  );
-}
-
-return true;
-
-  } catch (error) {
-    setLoginMessage(
-      error.message,
-      "error"
-    );
-
-    showLogin();
-
-    return false;
-
-  } finally {
-    loginBtn.disabled = false;
-    loginApiKeyInput.disabled = false;
   }
 }
 
@@ -393,6 +365,12 @@ async function saveSettings() {
   const apiKey = apiKeyInput.value.trim();
   const model = modelSelect.value;
 
+  if (!currentSessionToken) {
+    alert("Please log in with Telegram first.");
+    showLogin();
+    return;
+  }
+  
   const accountChanged =
   apiKey !== currentApiKey;
   
@@ -410,58 +388,24 @@ async function saveSettings() {
   saveSettingsBtn.textContent = "Checking...";
 
 try {
-  let response;
+  const response = await fetch(
+    `${HISTORY_API}/account/link-api`,
+    {
+      method: "POST",
 
+      headers: {
+        "Content-Type":
+          "application/json",
 
-  if (currentSessionToken) {
-    /*
-      Telegram account mode.
+        "Authorization":
+          `Bearer ${currentSessionToken}`
+      },
 
-      The Telegram session identifies
-      the website account.
-
-      The gk key is only the license.
-    */
-
-    response = await fetch(
-      `${HISTORY_API}/account/link-api`,
-      {
-        method: "POST",
-
-        headers: {
-          "Content-Type":
-            "application/json",
-
-          "Authorization":
-            `Bearer ${currentSessionToken}`
-        },
-
-        body: JSON.stringify({
-          api_key: apiKey
-        })
-      }
-    );
-
-  } else {
-    /*
-      Temporary legacy API login.
-
-      Keep this working until the full
-      Telegram migration is complete.
-    */
-
-    response = await fetch(
-      `${HISTORY_API}/account`,
-      {
-        method: "POST",
-
-        headers: {
-          "Authorization":
-            `Bearer ${apiKey}`
-        }
-      }
-    );
-  }
+      body: JSON.stringify({
+        api_key: apiKey
+      })
+    }
+  );
 
 
   let data = null;
@@ -482,11 +426,9 @@ try {
       "This API key cannot be used."
     );
   }
-if (currentSessionToken) {
-  localStorage.removeItem(
-    "globalblamp_unlicensed_login_at"
-  );
-}
+localStorage.removeItem(
+  "globalblamp_unlicensed_login_at"
+);
 
 const modelChanged =
   model !== currentModel;
@@ -1356,48 +1298,6 @@ function resizeTextarea() {
     `${newHeight}px`;
 }
 
-loginBtn.addEventListener(
-  "click",
-  async () => {
-    const apiKey =
-      loginApiKeyInput.value.trim();
-
-    if (!apiKey) {
-      setLoginMessage(
-        "Enter your API key.",
-        "error"
-      );
-
-      return;
-    }
-
-    if (!apiKey.startsWith("gk-")) {
-      setLoginMessage(
-        "API key must start with gk-",
-        "error"
-      );
-
-      return;
-    }
-
-    await loginWithApiKey(apiKey);
-  }
-);
-
-
-loginApiKeyInput.addEventListener(
-  "keydown",
-  async (event) => {
-    if (event.key !== "Enter") {
-      return;
-    }
-
-    event.preventDefault();
-
-    loginBtn.click();
-  }
-);
-
 historyBtn.addEventListener(
   "click",
   async () => {
@@ -1507,95 +1407,238 @@ async function startApp() {
 
 
   /*
-    Telegram account without an API yet:
-    allow the login to survive refresh
-    for 30 minutes.
+    TELEGRAM ACCOUNT MODE
+
+    Telegram is now the permanent
+    website identity.
+
+    If a Telegram session exists,
+    always try to restore it first.
   */
 
-  if (
-    currentSessionToken &&
-    !currentApiKey
-  ) {
-    const loginAt =
-      Number(
-        localStorage.getItem(
+  if (currentSessionToken) {
+    try {
+      const response =
+        await fetch(
+          `${HISTORY_API}/auth/session`,
+          {
+            method: "GET",
+
+            headers: {
+              "Authorization":
+                `Bearer ${currentSessionToken}`
+            }
+          }
+        );
+
+
+      /*
+        The stored Telegram session
+        is no longer valid.
+      */
+
+if (response.status === 401) {
+  localStorage.removeItem(
+    "globalblamp_session_token"
+  );
+
+  localStorage.removeItem(
+    "globalblamp_telegram_user"
+  );
+
+  localStorage.removeItem(
+    "globalblamp_unlicensed_login_at"
+  );
+
+  localStorage.removeItem(
+    "globalblamp_api_key"
+  );
+
+
+  currentSessionToken = "";
+  currentApiKey = "";
+
+
+  loginApiKeyInput.value = "";
+  apiKeyInput.value = "";
+
+
+  showLogin();
+  return;
+}
+
+      const data =
+        await response.json();
+
+
+      if (!response.ok) {
+        throw new Error(
+          data?.error ||
+          "Could not restore Telegram session"
+        );
+      }
+
+
+      /*
+        Refresh the locally cached
+        Telegram profile.
+      */
+
+      if (data.user) {
+        localStorage.setItem(
+          "globalblamp_telegram_user",
+          JSON.stringify(data.user)
+        );
+      }
+
+
+      /*
+        The Telegram account currently
+        has an active approved API.
+      */
+
+      if (data.api_access?.active) {
+        localStorage.removeItem(
           "globalblamp_unlicensed_login_at"
-        ) || 0
-      );
+        );
 
 
-    const thirtyMinutes =
-      30 * 60 * 1000;
+        showChat();
 
 
-    const stillValid =
-      loginAt > 0 &&
-      Date.now() - loginAt <
-        thirtyMinutes;
+        try {
+          await loadChats();
+        } catch (error) {
+          console.error(
+            "Could not load chats:",
+            error
+          );
+        }
 
 
-    if (stillValid) {
+        /*
+          The server knows this Telegram
+          account has an API, but this
+          browser no longer has the raw
+          gk key.
+
+          Keep Telegram logged in and
+          ask the user to enter the API
+          again in Settings.
+        */
+
+        if (!currentApiKey) {
+          openSettings();
+        }
+
+
+        return;
+      }
+
+
+      /*
+        No active API.
+
+        If this is a brand-new Telegram
+        login that has never attached an
+        API yet, keep the existing
+        30-minute temporary rule.
+      */
+
+      const loginAt =
+        Number(
+          localStorage.getItem(
+            "globalblamp_unlicensed_login_at"
+          ) || 0
+        );
+
+
+      if (loginAt > 0) {
+        const thirtyMinutes =
+          30 * 60 * 1000;
+
+
+        const stillValid =
+          Date.now() - loginAt <
+          thirtyMinutes;
+
+
+if (!stillValid) {
+  localStorage.removeItem(
+    "globalblamp_session_token"
+  );
+
+  localStorage.removeItem(
+    "globalblamp_telegram_user"
+  );
+
+  localStorage.removeItem(
+    "globalblamp_unlicensed_login_at"
+  );
+
+  localStorage.removeItem(
+    "globalblamp_api_key"
+  );
+
+
+  currentSessionToken = "";
+  currentApiKey = "";
+
+
+  loginApiKeyInput.value = "";
+  apiKeyInput.value = "";
+
+
+  showLogin();
+  return;
+}
+
+
+      /*
+        Telegram session itself is valid.
+
+        An API being missing, disabled,
+        expired or unavailable must NOT
+        log the Telegram account out.
+      */
+
       showChat();
       openSettings();
       return;
+      }
+
+
+    } catch (error) {
+      console.error(
+        "Telegram session restore failed:",
+        error
+      );
+
+
+      /*
+        A temporary network/Worker error
+        should not erase the saved login.
+
+        Keep the stored Telegram session
+        so another refresh can retry it.
+      */
+
+      showChat();
+      return;
     }
-
-
-    /*
-      Temporary unlicensed login expired.
-    */
-
-    localStorage.removeItem(
-      "globalblamp_session_token"
-    );
-
-    localStorage.removeItem(
-      "globalblamp_telegram_user"
-    );
-
-    localStorage.removeItem(
-      "globalblamp_unlicensed_login_at"
-    );
-
-
-    currentSessionToken = "";
-
-
-    showLogin();
-    return;
   }
 
 
   /*
-    No Telegram session and no API.
+    Telegram is now required as the
+    permanent website identity.
+
+    A saved API key by itself must
+    never restore chat/history access.
   */
 
-  if (!currentApiKey) {
-    showLogin();
-    return;
-  }
-
-
-  loginApiKeyInput.value =
-    currentApiKey;
-
-
-  const success =
-    await loginWithApiKey(
-      currentApiKey
-    );
-
-
-  if (!success) {
-    localStorage.removeItem(
-      "globalblamp_api_key"
-    );
-
-
-    currentApiKey = "";
-
-    loginApiKeyInput.value = "";
-  }
+  showLogin();
+  return;
 }
 
 function setupTelegramLogin() {
