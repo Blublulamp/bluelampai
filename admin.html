@@ -202,6 +202,16 @@
       color: #9999a3;
     }
 
+    .telegram-user-actions {
+      margin-top: 8px;
+    }
+
+    .telegram-user-actions button {
+      width: 100%;
+      min-height: 36px;
+      padding: 0 10px;
+      font-size: 12px;
+    }
     .review-box {
       margin-top: 10px;
       padding: 10px;
@@ -789,15 +799,38 @@
                       )}
                     </div>
 
-                    <div class="telegram-user-meta">
-                      Linked:
-                      ${escapeHtml(
-                        user.linked_at ||
-                        "-"
-                      )}
-                    </div>
+<div class="telegram-user-meta">
+  Linked:
+  ${escapeHtml(
+    user.linked_at ||
+    "-"
+  )}
+</div>
 
-                  </div>
+
+${
+  Number(
+    account.legacy_chat_count ||
+    0
+  ) > 0
+    ? `
+        <div class="telegram-user-actions">
+          <button
+            class="secondary"
+            data-action="migrate-legacy"
+            data-telegram-user-id="${escapeHtml(
+              String(user.id)
+            )}"
+          >
+            Move Legacy History Here
+          </button>
+        </div>
+      `
+    : ""
+}
+
+</div>
+
                 `;
               })
               .join("")
@@ -1029,16 +1062,45 @@
       );
 
 
-      if (deleteButton) {
-        deleteButton.addEventListener(
-          "click",
-          () => {
-            deleteAccount(
-              account
-            );
-          }
+      const migrationButtons =
+        item.querySelectorAll(
+          '[data-action="migrate-legacy"]'
         );
-      }
+
+
+      migrationButtons.forEach(
+        button => {
+          button.addEventListener(
+            "click",
+            () => {
+              const telegramUserId =
+                Number(
+                  button.dataset
+                    .telegramUserId
+                );
+
+
+              const telegramUser =
+                linkedUsers.find(
+                  user =>
+                    Number(user.id) ===
+                    telegramUserId
+                );
+
+
+              if (!telegramUser) {
+                return;
+              }
+
+
+              migrateLegacyHistory(
+                account,
+                telegramUser
+              );
+            }
+          );
+        }
+      );
 
 
       accountsList.appendChild(
@@ -1114,6 +1176,97 @@
       }
     }
 
+    async function migrateLegacyHistory(
+      account,
+      telegramUser
+    ) {
+      const username =
+        telegramUser.username
+          ? `@${telegramUser.username}`
+          : `Telegram ID ${telegramUser.telegram_id}`;
+
+
+      const legacyCount =
+        Number(
+          account.legacy_chat_count ||
+          0
+        );
+
+
+      const confirmed = confirm(
+        `Move ALL ${legacyCount} legacy chat(s) from ${account.key_preview} to ${username}?\n\nOnly do this if you know this old history belongs to this Telegram user.`
+      );
+
+
+      if (!confirmed) {
+        return;
+      }
+
+
+      const secondConfirm = confirm(
+        `After migration, those chats will permanently belong to ${username} and will survive API replacement/deletion.\n\nContinue?`
+      );
+
+
+      if (!secondConfirm) {
+        return;
+      }
+
+
+      setMessage(
+        accountsMessage,
+        "Migrating legacy history..."
+      );
+
+
+      try {
+        const response =
+          await fetch(
+            `${HISTORY_API}/admin/accounts/${account.id}/migrate-legacy-history`,
+            {
+              method: "POST",
+
+              headers:
+                getAdminHeaders(),
+
+              body: JSON.stringify({
+                telegram_user_id:
+                  telegramUser.id
+              })
+            }
+          );
+
+
+        const data =
+          await response.json();
+
+
+        if (!response.ok) {
+          throw new Error(
+            data?.error ||
+            "Unable to migrate legacy history"
+          );
+        }
+
+
+        setMessage(
+          accountsMessage,
+          `${data.migrated_chats} legacy chat(s) moved to ${username}.`,
+          "success"
+        );
+
+
+        await loadAccounts();
+
+
+      } catch (error) {
+        setMessage(
+          accountsMessage,
+          error.message,
+          "error"
+        );
+      }
+    }
 
     async function deleteAccountHistory(
       account
