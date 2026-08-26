@@ -163,6 +163,64 @@
       color: #ff9f9f;
     }
 
+        .status-review {
+      color: #ffd27a;
+    }
+
+    .section-title {
+      margin: 18px 0 4px;
+      font-size: 15px;
+      font-weight: 700;
+      color: #ffffff;
+    }
+
+    .section-title:first-child {
+      margin-top: 0;
+    }
+
+    .telegram-users {
+      display: grid;
+      gap: 7px;
+      margin-top: 10px;
+    }
+
+    .telegram-user {
+      padding: 9px 10px;
+      border: 1px solid #2a2a30;
+      border-radius: 10px;
+      background: #19191d;
+      font-size: 13px;
+      line-height: 1.45;
+    }
+
+    .telegram-user-name {
+      font-weight: 700;
+      color: #ffffff;
+    }
+
+    .telegram-user-meta {
+      color: #9999a3;
+    }
+
+    .review-box {
+      margin-top: 10px;
+      padding: 10px;
+      border: 1px solid #6b4d13;
+      border-radius: 10px;
+      background: #241c0e;
+      color: #ffd27a;
+      font-size: 13px;
+      line-height: 1.5;
+    }
+
+    .empty-section {
+      padding: 12px;
+      border: 1px dashed #33333a;
+      border-radius: 12px;
+      color: #888892;
+      font-size: 13px;
+    }
+
     .account-actions {
       display: grid;
       grid-template-columns: 1fr;
@@ -474,14 +532,16 @@
         return;
       }
 
+
       setMessage(
         accountsMessage,
         "Loading..."
       );
 
-      accountsList.innerHTML = "";
 
+      accountsList.innerHTML = "";
       refreshBtn.disabled = true;
+
 
       try {
         const response = await fetch(
@@ -492,8 +552,10 @@
           }
         );
 
+
         const data =
           await response.json();
+
 
         if (!response.ok) {
           throw new Error(
@@ -502,27 +564,112 @@
           );
         }
 
+
         const accounts =
           Array.isArray(data.accounts)
             ? data.accounts
             : [];
 
+
+        const normalAccounts =
+          accounts.filter(
+            account =>
+              account.lifecycle_status !==
+              "review_delete"
+          );
+
+
+        const reviewAccounts =
+          accounts.filter(
+            account =>
+              account.lifecycle_status ===
+              "review_delete"
+          );
+
+
         setMessage(
           accountsMessage,
-          `${accounts.length} account(s)`,
+          `${normalAccounts.length} active list • ${reviewAccounts.length} check for delete`,
           "success"
         );
 
-        if (!accounts.length) {
-          accountsList.innerHTML =
-            "<div>No approved accounts yet.</div>";
 
-          return;
+        accountsList.innerHTML = "";
+
+
+        const normalTitle =
+          document.createElement("div");
+
+        normalTitle.className =
+          "section-title";
+
+        normalTitle.textContent =
+          "Approved APIs";
+
+        accountsList.appendChild(
+          normalTitle
+        );
+
+
+        if (!normalAccounts.length) {
+          const empty =
+            document.createElement("div");
+
+          empty.className =
+            "empty-section";
+
+          empty.textContent =
+            "No approved APIs.";
+
+          accountsList.appendChild(
+            empty
+          );
+
+        } else {
+          normalAccounts.forEach(
+            account => {
+              renderAccount(account);
+            }
+          );
         }
 
-        for (const account of accounts) {
-          renderAccount(account);
+
+        const reviewTitle =
+          document.createElement("div");
+
+        reviewTitle.className =
+          "section-title";
+
+        reviewTitle.textContent =
+          "Check for Delete";
+
+        accountsList.appendChild(
+          reviewTitle
+        );
+
+
+        if (!reviewAccounts.length) {
+          const empty =
+            document.createElement("div");
+
+          empty.className =
+            "empty-section";
+
+          empty.textContent =
+            "No APIs waiting for review.";
+
+          accountsList.appendChild(
+            empty
+          );
+
+        } else {
+          reviewAccounts.forEach(
+            account => {
+              renderAccount(account);
+            }
+          );
         }
+
 
       } catch (error) {
         setMessage(
@@ -541,11 +688,18 @@
       const item =
         document.createElement("div");
 
-      item.className = "account-item";
+
+      item.className =
+        "account-item";
 
 
       const isActive =
         Number(account.is_active) === 1;
+
+
+      const isReview =
+        account.lifecycle_status ===
+        "review_delete";
 
 
       const status =
@@ -560,12 +714,142 @@
           : "status-disabled";
 
 
+      const lifecycleText =
+        isReview
+          ? "Check for Delete"
+          : "Approved";
+
+
+      const lifecycleClass =
+        isReview
+          ? "status-review"
+          : "status-active";
+
+
+      const usedSlots =
+        Number(
+          account.active_telegram_users ||
+          0
+        );
+
+
+      const maxSlots =
+        Number(
+          account.max_telegram_users ||
+          3
+        );
+
+
+      const linkedUsers =
+        Array.isArray(
+          account.linked_telegram_users
+        )
+          ? account.linked_telegram_users
+          : [];
+
+
+      const telegramUsersHtml =
+        linkedUsers.length
+          ? linkedUsers
+              .map(user => {
+                const username =
+                  user.username
+                    ? `@${user.username}`
+                    : "No username";
+
+
+                const fullName =
+                  [
+                    user.first_name,
+                    user.last_name
+                  ]
+                    .filter(Boolean)
+                    .join(" ") ||
+                  "No name";
+
+
+                return `
+                  <div class="telegram-user">
+
+                    <div class="telegram-user-name">
+                      ${escapeHtml(username)}
+                    </div>
+
+                    <div class="telegram-user-meta">
+                      ${escapeHtml(fullName)}
+                    </div>
+
+                    <div class="telegram-user-meta">
+                      Telegram ID:
+                      ${escapeHtml(
+                        String(
+                          user.telegram_id ||
+                          "-"
+                        )
+                      )}
+                    </div>
+
+                    <div class="telegram-user-meta">
+                      Linked:
+                      ${escapeHtml(
+                        user.linked_at ||
+                        "-"
+                      )}
+                    </div>
+
+                  </div>
+                `;
+              })
+              .join("")
+          : `
+              <div class="telegram-user">
+                <div class="telegram-user-meta">
+                  No active Telegram users.
+                </div>
+              </div>
+            `;
+
+
+      const reviewHtml =
+        isReview
+          ? `
+              <div class="review-box">
+
+                <div>
+                  <strong>
+                    Check for Delete
+                  </strong>
+                </div>
+
+                <div>
+                  Reason:
+                  ${escapeHtml(
+                    account.review_reason ||
+                    "-"
+                  )}
+                </div>
+
+                <div>
+                  Requested:
+                  ${escapeHtml(
+                    account.review_requested_at ||
+                    "-"
+                  )}
+                </div>
+
+              </div>
+            `
+          : "";
+
+
       item.innerHTML = `
         <div class="account-key">
           ${escapeHtml(
-            account.key_preview || "Unknown"
+            account.key_preview ||
+            "Unknown"
           )}
         </div>
+
 
         <div class="account-meta">
 
@@ -576,63 +860,129 @@
             )}
           </div>
 
+
           <div class="${statusClass}">
-            Status: ${status}
+            Status:
+            ${status}
           </div>
 
+
+          <div class="${lifecycleClass}">
+            Lifecycle:
+            ${lifecycleText}
+          </div>
+
+
           <div>
-            Chats:
+            Telegram Usage:
             ${escapeHtml(
-              String(account.chat_count || 0)
+              String(usedSlots)
+            )}
+            /
+            ${escapeHtml(
+              String(maxSlots)
             )}
           </div>
+
+
+          <div>
+            Legacy Chats:
+            ${escapeHtml(
+              String(
+                account.legacy_chat_count ||
+                0
+              )
+            )}
+          </div>
+
+
+          <div>
+            Telegram Chats:
+            ${escapeHtml(
+              String(
+                account.telegram_chat_count ||
+                0
+              )
+            )}
+          </div>
+
 
           <div>
             Created:
             ${escapeHtml(
-              account.created_at || "-"
+              account.created_at ||
+              "-"
             )}
           </div>
+
 
           <div>
             Last active:
             ${escapeHtml(
-              account.last_active_at || "-"
+              account.last_active_at ||
+              "-"
             )}
           </div>
 
         </div>
 
+
+        <div class="telegram-users">
+
+          <div class="account-key">
+            Linked Telegram Users
+          </div>
+
+          ${telegramUsersHtml}
+
+        </div>
+
+
+        ${reviewHtml}
+
+
         <div class="account-actions">
 
           <button
             class="${
-              isActive
-                ? "warning"
-                : "success-button"
+              isReview
+                ? "success-button"
+                : isActive
+                  ? "warning"
+                  : "success-button"
             }"
             data-action="status"
           >
             ${
-              isActive
-                ? "Disable"
-                : "Enable"
+              isReview
+                ? "Reactivate"
+                : isActive
+                  ? "Disable"
+                  : "Enable"
             }
           </button>
+
 
           <button
             class="secondary"
             data-action="history"
           >
-            Delete History
+            Delete Legacy History
           </button>
 
-          <button
-            class="danger"
-            data-action="delete"
-          >
-            Delete Account
-          </button>
+
+          ${
+            isReview
+              ? `
+                  <button
+                    class="danger"
+                    data-action="delete"
+                  >
+                    Permanently Delete
+                  </button>
+                `
+              : ""
+          }
 
         </div>
       `;
@@ -643,10 +993,12 @@
           '[data-action="status"]'
         );
 
+
       const historyButton =
         item.querySelector(
           '[data-action="history"]'
         );
+
 
       const deleteButton =
         item.querySelector(
@@ -659,7 +1011,9 @@
         () => {
           setAccountStatus(
             account,
-            !isActive
+            isReview
+              ? true
+              : !isActive
           );
         }
       );
@@ -668,20 +1022,28 @@
       historyButton.addEventListener(
         "click",
         () => {
-          deleteAccountHistory(account);
+          deleteAccountHistory(
+            account
+          );
         }
       );
 
 
-      deleteButton.addEventListener(
-        "click",
-        () => {
-          deleteAccount(account);
-        }
+      if (deleteButton) {
+        deleteButton.addEventListener(
+          "click",
+          () => {
+            deleteAccount(
+              account
+            );
+          }
+        );
+      }
+
+
+      accountsList.appendChild(
+        item
       );
-
-
-      accountsList.appendChild(item);
     }
 
 
@@ -757,7 +1119,7 @@
       account
     ) {
       const confirmed = confirm(
-        `Delete ALL chat history for ${account.key_preview}?\n\nThe API account will remain approved.`
+        `Delete LEGACY API history for ${account.key_preview}?\n\nTelegram-owned chat history will NOT be deleted.`
       );
 
       if (!confirmed) {
@@ -765,7 +1127,7 @@
       }
 
       const secondConfirm = confirm(
-        "This will permanently delete all chats and messages for this account. Continue?"
+        "This permanently deletes only old API-owned chats and their messages. Continue?"
       );
 
       if (!secondConfirm) {
@@ -818,7 +1180,7 @@
       account
     ) {
       const confirmed = confirm(
-        `Delete ${account.key_preview}?\n\nThis will remove the approved account AND all of its chat history.`
+        `Permanently delete ${account.key_preview}?\n\nLegacy API history will be deleted. Telegram-owned history will remain.`
       );
 
       if (!confirmed) {
