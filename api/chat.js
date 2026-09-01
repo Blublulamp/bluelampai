@@ -4,6 +4,36 @@ const HISTORY_API =
 const UPSTREAM_API =
   "https://ai.geraikita.com/v1/chat/completions";
 
+function getSessionToken(req) {
+  const cookieHeader =
+    req.headers.cookie || "";
+
+  const cookies =
+    cookieHeader.split(";");
+
+  for (const cookie of cookies) {
+    const [name, ...valueParts] =
+      cookie.trim().split("=");
+
+    if (
+      name ===
+      "globalblamp_session"
+    ) {
+      const rawValue =
+        valueParts.join("=");
+
+      try {
+        return decodeURIComponent(
+          rawValue
+        );
+      } catch {
+        return "";
+      }
+    }
+  }
+
+  return "";
+}
 
 export default async function handler(req, res) {
   if (req.method !== "POST") {
@@ -16,11 +46,32 @@ export default async function handler(req, res) {
 
 
   try {
+
+/*
+  Prefer the new HttpOnly cookie.
+
+  During the migration only, fall back
+  to the old Authorization header so
+  existing browser sessions keep working.
+*/
+
+const cookieSessionToken =
+  getSessionToken(req);
+
 const authorization =
-  req.headers.authorization;
+  req.headers.authorization || "";
+
+const bearerSessionToken =
+  authorization.startsWith("Bearer ")
+    ? authorization.slice(7).trim()
+    : "";
+
+const sessionToken =
+  cookieSessionToken ||
+  bearerSessionToken;
 
 
-if (!authorization) {
+if (!sessionToken) {
   return res.status(401).json({
     error: {
       message:
@@ -45,8 +96,11 @@ if (!process.env.INTERNAL_API_SECRET) {
   Resolve the Telegram user's currently
   linked approved API credential.
 
-  The browser sends only the Telegram
-  website session.
+  The browser sends the HttpOnly session
+  cookie automatically.
+
+  This Vercel server extracts the Telegram
+  session and forwards it to the Worker.
 
   Only this Vercel server knows
   INTERNAL_API_SECRET.
@@ -60,7 +114,7 @@ const resolveResponse =
 
       headers: {
         "Authorization":
-          authorization,
+          `Bearer ${sessionToken}`,
 
         "X-Internal-Secret":
           process.env.INTERNAL_API_SECRET
