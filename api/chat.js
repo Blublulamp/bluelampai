@@ -16,59 +16,96 @@ export default async function handler(req, res) {
 
 
   try {
-    const authorization =
-      req.headers.authorization;
+const authorization =
+  req.headers.authorization;
 
 
-    if (!authorization) {
-      return res.status(401).json({
-        error: {
-          message: "Missing API key"
-        }
-      });
+if (!authorization) {
+  return res.status(401).json({
+    error: {
+      message:
+        "Missing Telegram session"
     }
+  });
+}
 
 
-    /*
-      Step 1:
-      Check whether this gk account
-      is approved and active.
-    */
+if (!process.env.INTERNAL_API_SECRET) {
+  return res.status(500).json({
+    error: {
+      message:
+        "Internal API secret is not configured"
+    }
+  });
+}
 
-    const accountResponse = await fetch(
-      `${HISTORY_API}/account`,
-      {
-        method: "POST",
 
-        headers: {
-          "Authorization": authorization
-        }
+/*
+  Step 1:
+  Resolve the Telegram user's currently
+  linked approved API credential.
+
+  The browser sends only the Telegram
+  website session.
+
+  Only this Vercel server knows
+  INTERNAL_API_SECRET.
+*/
+
+const resolveResponse =
+  await fetch(
+    `${HISTORY_API}/internal/resolve-api`,
+    {
+      method: "POST",
+
+      headers: {
+        "Authorization":
+          authorization,
+
+        "X-Internal-Secret":
+          process.env.INTERNAL_API_SECRET
       }
-    );
-
-
-    let accountData = null;
-
-    try {
-      accountData =
-        await accountResponse.json();
-    } catch {
-      accountData = null;
     }
+  );
 
 
-    if (!accountResponse.ok) {
-      return res
-        .status(accountResponse.status)
-        .json({
-          error: {
-            message:
-              accountData?.error ||
-              "This API key is not authorized"
-          }
-        });
+let resolveData = null;
+
+try {
+  resolveData =
+    await resolveResponse.json();
+} catch {
+  resolveData = null;
+}
+
+
+if (!resolveResponse.ok) {
+  return res
+    .status(resolveResponse.status)
+    .json({
+      error: {
+        message:
+          resolveData?.error ||
+          "Could not resolve API access"
+      }
+    });
+}
+
+
+const upstreamApiKey =
+  typeof resolveData?.api_key === "string"
+    ? resolveData.api_key.trim()
+    : "";
+
+
+if (!upstreamApiKey) {
+  return res.status(502).json({
+    error: {
+      message:
+        "Resolved API credential is missing"
     }
-
+  });
+}
 
     /*
       Step 2:
@@ -86,7 +123,8 @@ export default async function handler(req, res) {
 
         headers: {
           "Content-Type": "application/json",
-          "Authorization": authorization,
+          "Authorization":
+            `Bearer ${upstreamApiKey}`,
           "Accept": "text/event-stream"
         },
 
