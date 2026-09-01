@@ -766,19 +766,35 @@ currentModel =
 
   chatArea.innerHTML = "";
 
+if (!messages.length) {
+  const welcomeMessage =
+    document.createElement("div");
 
-  if (!messages.length) {
-    chatArea.innerHTML = `
-      <div class="welcome-message">
-        <h2>${chat.title || "New Chat"}</h2>
+  welcomeMessage.className =
+    "welcome-message";
 
-        <p>
-          Start chatting.
-        </p>
-      </div>
-    `;
 
-  } else {
+  const title =
+    document.createElement("h2");
+
+  title.textContent =
+    chat.title || "New Chat";
+
+
+  const description =
+    document.createElement("p");
+
+  description.textContent =
+    "Start chatting.";
+
+
+  welcomeMessage.appendChild(title);
+  welcomeMessage.appendChild(description);
+
+  chatArea.appendChild(welcomeMessage);
+
+} else {
+
     messages.forEach((message) => {
       addMessage(
         message.role,
@@ -958,13 +974,12 @@ async function sendMessage() {
     return;
   }
 
-
-  if (!currentApiKey) {
-    openSettings();
-    alert("Please enter your API key first.");
+  if (!currentSessionToken) {
+    alert(
+      "Please sign in with Telegram first."
+    );
     return;
   }
-
 
   messageInput.value = "";
   resizeTextarea();
@@ -1021,7 +1036,9 @@ try {
 
       headers: {
         "Content-Type": "application/json",
-        "Authorization": `Bearer ${currentApiKey}`
+
+        "Authorization":
+          `Bearer ${currentSessionToken}`
       },
 
       body: JSON.stringify({
