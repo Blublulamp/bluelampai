@@ -50,6 +50,8 @@ const sendBtn = document.getElementById("sendBtn");
 let messages = [];
 let currentChatId = null;
 
+let hasActiveApi = false;
+
 let currentSessionToken =
   localStorage.getItem(
     "globalblamp_session_token"
@@ -205,6 +207,8 @@ setLoginMessage(
   "success"
 );
 
+hasActiveApi =
+  data.api_access?.active === true;
 
 showChat();
 
@@ -278,6 +282,12 @@ openSettings();
 
 function loadSettings() {
   apiKeyInput.value = "";
+
+  apiKeyInput.placeholder =
+    hasActiveApi
+      ? "API connected — paste a new gk key only to replace it"
+      : "Enter your gk API key";
+
   modelSelect.value = currentModel;
 }
 
@@ -320,9 +330,9 @@ function logout() {
 
 
 currentSessionToken = "";
+hasActiveApi = false;
 
-  apiKeyInput.value = "";
-
+apiKeyInput.value = "";
 
   resetToNewChat();
 
@@ -343,66 +353,96 @@ async function saveSettings() {
     return;
   }
   
-  if (!apiKey) {
-    alert("Please enter your API key.");
-    return;
-  }
+/*
+  If no API is connected yet,
+  the user must provide one.
 
-  if (!apiKey.startsWith("gk-")) {
-    alert("Your API key should start with gk-");
-    return;
-  }
+  If an API is already connected,
+  leaving this field empty means
+  "keep my current API".
+*/
+
+if (!apiKey && !hasActiveApi) {
+  alert("Please enter your API key.");
+  return;
+}
+
+if (
+  apiKey &&
+  !apiKey.startsWith("gk-")
+) {
+  alert(
+    "Your API key should start with gk-"
+  );
+  return;
+}
 
   saveSettingsBtn.disabled = true;
   saveSettingsBtn.textContent = "Checking...";
 
 try {
-  const response = await fetch(
-    `${HISTORY_API}/account/link-api`,
-    {
-      method: "POST",
-
-      headers: {
-        "Content-Type":
-          "application/json",
-
-        "Authorization":
-          `Bearer ${currentSessionToken}`
-      },
-
-      body: JSON.stringify({
-        api_key: apiKey
-      })
-    }
-  );
+  let accountChanged = false;
 
 
-  let data = null;
+  /*
+    Only contact link-api when the user
+    actually entered a key.
 
+    An empty field while hasActiveApi is
+    true means: keep the current API.
+  */
 
-  try {
-    data =
-      await response.json();
+  if (apiKey) {
+    const response = await fetch(
+      `${HISTORY_API}/account/link-api`,
+      {
+        method: "POST",
 
-  } catch {
-    data = null;
-  }
+        headers: {
+          "Content-Type":
+            "application/json",
 
+          "Authorization":
+            `Bearer ${currentSessionToken}`
+        },
 
-  if (!response.ok) {
-    throw new Error(
-      data?.error ||
-      "This API key cannot be used."
+        body: JSON.stringify({
+          api_key: apiKey
+        })
+      }
     );
-  }
-/*
-  The Worker is the source of truth
-  for whether this API was already
-  linked to this Telegram account.
-*/
 
-const accountChanged =
-  data?.already_linked !== true;
+
+    let data = null;
+
+
+    try {
+      data =
+        await response.json();
+
+    } catch {
+      data = null;
+    }
+
+
+    if (!response.ok) {
+      throw new Error(
+        data?.error ||
+        "This API key cannot be used."
+      );
+    }
+
+
+    /*
+      The Worker is the source of truth
+      for whether the API really changed.
+    */
+
+    accountChanged =
+      data?.already_linked !== true;
+
+    hasActiveApi = true;
+  }
 localStorage.removeItem(
   "globalblamp_unlicensed_login_at"
 );
@@ -1457,9 +1497,10 @@ if (response.status === 401) {
   );
 
 
-  currentSessionToken = "";
+currentSessionToken = "";
+hasActiveApi = false;
 
-  apiKeyInput.value = "";
+apiKeyInput.value = "";
 
 
   showLogin();
@@ -1490,6 +1531,8 @@ if (response.status === 401) {
         );
       }
 
+      hasActiveApi =
+        data.api_access?.active === true;
 
       /*
         The Telegram account currently
