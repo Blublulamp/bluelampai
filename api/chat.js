@@ -48,27 +48,15 @@ export default async function handler(req, res) {
   try {
 
 /*
-  Prefer the new HttpOnly cookie.
+  The Telegram session is stored only
+  in the HttpOnly cookie.
 
-  During the migration only, fall back
-  to the old Authorization header so
-  existing browser sessions keep working.
+  Browser JavaScript never sends or
+  reads the session token directly.
 */
 
-const cookieSessionToken =
-  getSessionToken(req);
-
-const authorization =
-  req.headers.authorization || "";
-
-const bearerSessionToken =
-  authorization.startsWith("Bearer ")
-    ? authorization.slice(7).trim()
-    : "";
-
 const sessionToken =
-  cookieSessionToken ||
-  bearerSessionToken;
+  getSessionToken(req);
 
 
 if (!sessionToken) {
