@@ -82,15 +82,36 @@ export default async function handler(
     }
 
 
-    if (!response.ok) {
-      return res
-        .status(response.status)
-        .json({
-          error:
-            data?.error ||
-            "Could not restore Telegram session"
-        });
-    }
+if (!response.ok) {
+  /*
+    If the Worker says the Telegram
+    session is invalid/expired, remove
+    the stale HttpOnly cookie too.
+  */
+
+  if (response.status === 401) {
+    res.setHeader(
+      "Set-Cookie",
+      [
+        "globalblamp_session=",
+        "HttpOnly",
+        "Secure",
+        "SameSite=Lax",
+        "Path=/",
+        "Max-Age=0"
+      ].join("; ")
+    );
+  }
+
+
+  return res
+    .status(response.status)
+    .json({
+      error:
+        data?.error ||
+        "Could not restore Telegram session"
+    });
+}
 
 
     return res.status(200).json({
