@@ -50,8 +50,6 @@ const sendBtn = document.getElementById("sendBtn");
 let messages = [];
 let currentChatId = null;
 
-let currentApiKey = "";
-
 let currentSessionToken =
   localStorage.getItem(
     "globalblamp_session_token"
@@ -185,13 +183,6 @@ async function handleTelegramOidcResult(
         "Telegram login failed"
       );
     }
-
-
-console.log(
-  "Telegram login successful:",
-  data
-);
-
 
 currentSessionToken =
   data.session_token;
@@ -328,8 +319,7 @@ function logout() {
   );
 
 
-  currentApiKey = "";
-  currentSessionToken = "";
+currentSessionToken = "";
 
   apiKeyInput.value = "";
 
@@ -352,9 +342,6 @@ async function saveSettings() {
     showLogin();
     return;
   }
-  
-  const accountChanged =
-  apiKey !== currentApiKey;
   
   if (!apiKey) {
     alert("Please enter your API key.");
@@ -408,6 +395,14 @@ try {
       "This API key cannot be used."
     );
   }
+/*
+  The Worker is the source of truth
+  for whether this API was already
+  linked to this Telegram account.
+*/
+
+const accountChanged =
+  data?.already_linked !== true;
 localStorage.removeItem(
   "globalblamp_unlicensed_login_at"
 );
@@ -423,7 +418,6 @@ const modelChanged =
   browser after a successful save.
 */
 
-currentApiKey = "";
 currentModel = model;
 
 apiKeyInput.value = "";
@@ -1464,7 +1458,6 @@ if (response.status === 401) {
 
 
   currentSessionToken = "";
-  currentApiKey = "";
 
   apiKeyInput.value = "";
 
