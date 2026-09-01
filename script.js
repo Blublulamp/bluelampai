@@ -377,6 +377,22 @@ if (
   return;
 }
 
+/*
+  If an API is already connected and the
+  user entered another key, require an
+  explicit confirmation before replacement.
+*/
+
+if (hasActiveApi && apiKey) {
+  const confirmed = confirm(
+    "Replace your currently connected API with this new API key?"
+  );
+
+  if (!confirmed) {
+    return;
+  }
+}
+
   saveSettingsBtn.disabled = true;
   saveSettingsBtn.textContent = "Checking...";
 
