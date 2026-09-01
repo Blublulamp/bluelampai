@@ -50,10 +50,7 @@ const sendBtn = document.getElementById("sendBtn");
 let messages = [];
 let currentChatId = null;
 
-let currentApiKey =
-  localStorage.getItem(
-    "globalblamp_api_key"
-  ) || "";
+let currentApiKey = "";
 
 let currentSessionToken =
   localStorage.getItem(
@@ -289,7 +286,7 @@ openSettings();
 }
 
 function loadSettings() {
-  apiKeyInput.value = currentApiKey;
+  apiKeyInput.value = "";
   modelSelect.value = currentModel;
 }
 
@@ -418,12 +415,21 @@ localStorage.removeItem(
 const modelChanged =
   model !== currentModel;
 
-currentApiKey = apiKey;
+/*
+  The API key has already been securely
+  linked and encrypted by the Worker.
+
+  Do not keep the raw gk key in the
+  browser after a successful save.
+*/
+
+currentApiKey = "";
 currentModel = model;
 
-localStorage.setItem(
-  "globalblamp_api_key",
-  currentApiKey
+apiKeyInput.value = "";
+
+localStorage.removeItem(
+  "globalblamp_api_key"
 );
 
 localStorage.setItem(
@@ -469,7 +475,7 @@ closeSettings();
   } catch (error) {
     alert(error.message);
 
-    apiKeyInput.value = currentApiKey;
+    apiKeyInput.value = "";
 
   } finally {
     saveSettingsBtn.disabled = false;
@@ -1516,20 +1522,14 @@ if (response.status === 401) {
         }
 
 
-        /*
-          The server knows this Telegram
-          account has an API, but this
-          browser no longer has the raw
-          gk key.
+/*
+  The server already has this Telegram
+  user's approved API credential stored
+  securely.
 
-          Keep Telegram logged in and
-          ask the user to enter the API
-          again in Settings.
-        */
-
-        if (!currentApiKey) {
-          openSettings();
-        }
+  The browser does not need the raw
+  gk key anymore.
+*/
 
 
         return;
