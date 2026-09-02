@@ -1,6 +1,22 @@
 const HISTORY_API =
   "https://history.bluelamp.workers.dev";
 
+function isAllowedOrigin(req) {
+  const origin =
+    req.headers.origin || "";
+
+  if (!origin) {
+    return false;
+  }
+
+  const host =
+    req.headers.host || "";
+
+  const expectedOrigin =
+    `https://${host}`;
+
+  return origin === expectedOrigin;
+}
 
 function getSessionToken(req) {
   const cookieHeader =
@@ -47,6 +63,14 @@ export default async function handler(
     });
   }
 
+if (
+  req.method === "POST" &&
+  !isAllowedOrigin(req)
+) {
+  return res.status(403).json({
+    error: "Invalid request origin"
+  });
+}
 
   const sessionToken =
     getSessionToken(req);
