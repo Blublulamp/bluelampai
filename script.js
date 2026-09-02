@@ -43,7 +43,10 @@ const closeHistoryBtn =
 
 const newChatBtn =
   document.getElementById("newChatBtn");
-
+const chatSearchInput =
+  document.getElementById(
+    "chatSearchInput"
+  );
 const chatList =
   document.getElementById("chatList");
 
@@ -54,6 +57,12 @@ const chatArea = document.getElementById("chatArea");
 const messageInput = document.getElementById("messageInput");
 const sendBtn = document.getElementById("sendBtn");
 
+const scrollToLatestBtn =
+  document.getElementById(
+    "scrollToLatestBtn"
+  );
+
+let cachedChats = [];
 
 let messages = [];
 let currentChatId = null;
@@ -1197,9 +1206,78 @@ const response = await fetch(
     ? data.chats
     : [];
 
-  renderChatList(chats);
+cachedChats = chats;
 
-  return chats;
+filterChatList();
+
+return chats;
+}
+
+function filterChatList() {
+  const query =
+    chatSearchInput
+      ?.value
+      .trim()
+      .toLowerCase() || "";
+
+
+  if (!query) {
+    renderChatList(
+      cachedChats
+    );
+
+    return;
+  }
+
+
+  const filteredChats =
+    cachedChats.filter(
+      (chat) => {
+        const title =
+          String(
+            chat.title || ""
+          ).toLowerCase();
+
+
+        const model =
+          String(
+            chat.model || ""
+          ).toLowerCase();
+
+
+        return (
+          title.includes(query) ||
+          model.includes(query)
+        );
+      }
+    );
+
+
+  if (!filteredChats.length) {
+    chatList.innerHTML = "";
+
+    const empty =
+      document.createElement(
+        "div"
+      );
+
+    empty.className =
+      "history-empty";
+
+    empty.textContent =
+      "No matching chats.";
+
+    chatList.appendChild(
+      empty
+    );
+
+    return;
+  }
+
+
+  renderChatList(
+    filteredChats
+  );
 }
 
 function renderChatList(chats) {
@@ -1685,8 +1763,12 @@ async function sendMessage() {
     return;
   }
 
-  messageInput.value = "";
-  resizeTextarea();
+messageInput.value = "";
+
+messageInput.style.height =
+  "auto";
+
+resizeTextarea();
 
 
 try {
@@ -1888,8 +1970,11 @@ renderMessageContent(
 );
 
 
-      chatArea.scrollTop =
-        chatArea.scrollHeight;
+      if (isNearChatBottom()) {
+        scrollToLatest("auto");
+      } else {
+        updateScrollToLatestButton();
+      }
     }
   }
 
@@ -2013,8 +2098,12 @@ renderMessageContent(
 
   messageInput.focus();
 
-  chatArea.scrollTop =
-    chatArea.scrollHeight;
+
+  if (isNearChatBottom()) {
+    scrollToLatest("auto");
+  } else {
+    updateScrollToLatestButton();
+  }
 }
 }
 
@@ -2029,6 +2118,55 @@ function resizeTextarea() {
   messageInput.style.height =
     `${newHeight}px`;
 }
+
+function isNearChatBottom() {
+  const distanceFromBottom =
+    chatArea.scrollHeight -
+    chatArea.scrollTop -
+    chatArea.clientHeight;
+
+
+  return distanceFromBottom < 120;
+}
+
+
+function updateScrollToLatestButton() {
+  if (
+    !scrollToLatestBtn
+  ) {
+    return;
+  }
+
+
+  const shouldShow =
+    !isNearChatBottom();
+
+
+  scrollToLatestBtn.classList.toggle(
+    "hidden",
+    !shouldShow
+  );
+}
+
+
+function scrollToLatest(
+  behavior = "smooth"
+) {
+  chatArea.scrollTo({
+    top: chatArea.scrollHeight,
+    behavior
+  });
+
+
+  scrollToLatestBtn.classList.add(
+    "hidden"
+  );
+}
+
+chatSearchInput.addEventListener(
+  "input",
+  filterChatList
+);
 
 historyBtn.addEventListener(
   "click",
@@ -2063,6 +2201,13 @@ newChatBtn.addEventListener(
   "click",
   () => {
     resetToNewChat();
+
+
+    chatSearchInput.value =
+      "";
+
+    filterChatList();
+
 
     closeHistory();
 
@@ -2196,6 +2341,18 @@ messageInput.addEventListener(
   resizeTextarea
 );
 
+chatArea.addEventListener(
+  "scroll",
+  updateScrollToLatestButton
+);
+
+
+scrollToLatestBtn.addEventListener(
+  "click",
+  () => {
+    scrollToLatest();
+  }
+);
 
 messageInput.addEventListener(
   "keydown",
@@ -2207,12 +2364,62 @@ messageInput.addEventListener(
     ) {
       event.preventDefault();
 
+
+      if (isGenerating) {
+        return;
+      }
+
+
       sendMessage();
     }
 
   }
 );
 
+document.addEventListener(
+  "keydown",
+  (event) => {
+
+    /*
+      Ctrl/Cmd + K
+      focuses conversation search.
+    */
+
+    if (
+      (event.ctrlKey ||
+        event.metaKey) &&
+      event.key.toLowerCase() ===
+        "k"
+    ) {
+      event.preventDefault();
+
+
+      openHistory();
+
+
+      chatSearchInput.focus();
+
+      chatSearchInput.select();
+
+      return;
+    }
+
+
+    /*
+      Escape closes open UI.
+    */
+
+    if (
+      event.key === "Escape"
+    ) {
+      closeHistory();
+
+      closeSettings();
+
+      messageInput.focus();
+    }
+  }
+);
 
 async function startApp() {
   setupTelegramLogin();
