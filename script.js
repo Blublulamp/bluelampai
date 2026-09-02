@@ -20,7 +20,15 @@ const settingsModal = document.getElementById("settingsModal");
 
 const apiKeyInput = document.getElementById("apiKeyInput");
 const modelSelect = document.getElementById("modelSelect");
+const headerModelSelect =
+  document.getElementById(
+    "headerModelSelect"
+  );
 
+const themeToggleBtn =
+  document.getElementById(
+    "themeToggleBtn"
+  );
 const historyBtn =
   document.getElementById("historyBtn");
 
@@ -56,6 +64,82 @@ let currentModel =
   localStorage.getItem(
     "globalblamp_model"
   ) || "gpt-5.6-sol";
+function setupHeaderModelPicker() {
+  if (
+    !headerModelSelect ||
+    !modelSelect
+  ) {
+    return;
+  }
+
+
+  /*
+    Settings owns the model list.
+
+    Copy the same options into
+    the top-bar picker so we do not
+    maintain two separate model lists.
+  */
+
+  headerModelSelect.innerHTML =
+    modelSelect.innerHTML;
+
+
+  headerModelSelect.value =
+    currentModel;
+
+
+  modelSelect.value =
+    currentModel;
+}
+
+
+function setSelectedModel(model) {
+  if (!model) {
+    return;
+  }
+
+
+  const modelChanged =
+    model !== currentModel;
+
+
+  currentModel = model;
+
+
+  localStorage.setItem(
+    "globalblamp_model",
+    currentModel
+  );
+
+
+  if (modelSelect) {
+    modelSelect.value =
+      currentModel;
+  }
+
+
+  if (headerModelSelect) {
+    headerModelSelect.value =
+      currentModel;
+  }
+
+
+  /*
+    A saved conversation keeps
+    the model it was created with.
+
+    Changing models therefore starts
+    a fresh conversation.
+  */
+
+  if (
+    modelChanged &&
+    currentChatId
+  ) {
+    resetToNewChat();
+  }
+}
 function setCurrentChatTitle(title) {
   currentChatTitle.textContent =
     title || "New Chat";
@@ -69,11 +153,19 @@ function resetToNewChat() {
 
   chatArea.innerHTML = `
     <div class="welcome-message">
-      <h2>New Chat</h2>
+
+      <div class="welcome-mark">
+        G
+      </div>
+
+      <h2>
+        How can I help?
+      </h2>
 
       <p>
-        Start a new conversation.
+        Start a conversation with GlobalBLAMP AI.
       </p>
+
     </div>
   `;
 }
@@ -270,7 +362,11 @@ function loadSettings() {
       ? "API connected — paste a new gk key only to replace it"
       : "Enter your gk API key";
 
-  modelSelect.value = currentModel;
+modelSelect.value =
+  currentModel;
+
+headerModelSelect.value =
+  currentModel;
 }
 
 function openHistory() {
@@ -791,12 +887,16 @@ setCurrentChatTitle(
 currentModel =
   chat.model || currentModel;
 
-  localStorage.setItem(
-    "globalblamp_model",
-    currentModel
-  );
+localStorage.setItem(
+  "globalblamp_model",
+  currentModel
+);
 
-  modelSelect.value = currentModel;
+modelSelect.value =
+  currentModel;
+
+headerModelSelect.value =
+  currentModel;
 
   messages = savedMessages.map(
     (message) => ({
@@ -1361,7 +1461,81 @@ newChatBtn.addEventListener(
     messageInput.focus();
   }
 );
+headerModelSelect.addEventListener(
+  "change",
+  () => {
+    setSelectedModel(
+      headerModelSelect.value
+    );
 
+    messageInput.focus();
+  }
+);
+function applyTheme(theme) {
+  const useLight =
+    theme === "light";
+
+
+  document.body.classList.toggle(
+    "light-theme",
+    useLight
+  );
+
+
+  themeToggleBtn.textContent =
+    useLight
+      ? "☾"
+      : "☀";
+
+
+  themeToggleBtn.setAttribute(
+    "aria-label",
+    useLight
+      ? "Switch to dark theme"
+      : "Switch to light theme"
+  );
+}
+
+
+function loadTheme() {
+  const savedTheme =
+    localStorage.getItem(
+      "globalblamp_theme"
+    );
+
+
+  applyTheme(
+    savedTheme === "light"
+      ? "light"
+      : "dark"
+  );
+}
+
+
+themeToggleBtn.addEventListener(
+  "click",
+  () => {
+    const isLight =
+      document.body.classList.contains(
+        "light-theme"
+      );
+
+
+    const nextTheme =
+      isLight
+        ? "dark"
+        : "light";
+
+
+    localStorage.setItem(
+      "globalblamp_theme",
+      nextTheme
+    );
+
+
+    applyTheme(nextTheme);
+  }
+);
 settingsBtn.addEventListener(
   "click",
   openSettings
@@ -1426,6 +1600,10 @@ messageInput.addEventListener(
 
 async function startApp() {
   setupTelegramLogin();
+
+  setupHeaderModelPicker();
+
+  loadTheme();
 
   loadSettings();
 
