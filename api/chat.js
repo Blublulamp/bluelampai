@@ -4,6 +4,23 @@ const HISTORY_API =
 const UPSTREAM_API =
   "https://ai.geraikita.com/v1/chat/completions";
 
+function isAllowedOrigin(req) {
+  const origin =
+    req.headers.origin || "";
+
+  if (!origin) {
+    return false;
+  }
+
+  const host =
+    req.headers.host || "";
+
+  const expectedOrigin =
+    `https://${host}`;
+
+  return origin === expectedOrigin;
+}
+
 function getSessionToken(req) {
   const cookieHeader =
     req.headers.cookie || "";
@@ -36,14 +53,22 @@ function getSessionToken(req) {
 }
 
 export default async function handler(req, res) {
-  if (req.method !== "POST") {
-    return res.status(405).json({
-      error: {
-        message: "Method not allowed"
-      }
-    });
-  }
+if (req.method !== "POST") {
+  return res.status(405).json({
+    error: {
+      message: "Method not allowed"
+    }
+  });
+}
 
+
+if (!isAllowedOrigin(req)) {
+  return res.status(403).json({
+    error: {
+      message: "Invalid request origin"
+    }
+  });
+}
 
   try {
 
