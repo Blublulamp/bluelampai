@@ -58,6 +58,12 @@ export default async function handler(
       error: "Method not allowed"
     });
   }
+if (!process.env.INTERNAL_API_SECRET) {
+  return res.status(500).json({
+    error:
+      "Internal API secret is not configured"
+  });
+}
 if (!isAllowedOrigin(req)) {
   return res.status(403).json({
     error: "Invalid request origin"
