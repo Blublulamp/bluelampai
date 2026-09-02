@@ -19,6 +19,50 @@ const logoutBtn =
 const settingsModal = document.getElementById("settingsModal");
 
 const apiKeyInput = document.getElementById("apiKeyInput");
+
+const toggleApiKeyBtn =
+  document.getElementById(
+    "toggleApiKeyBtn"
+  );
+
+
+const settingsStatus =
+  document.getElementById(
+    "settingsStatus"
+  );
+
+
+const confirmModal =
+  document.getElementById(
+    "confirmModal"
+  );
+
+const confirmTitle =
+  document.getElementById(
+    "confirmTitle"
+  );
+
+const confirmMessage =
+  document.getElementById(
+    "confirmMessage"
+  );
+
+const confirmCancelBtn =
+  document.getElementById(
+    "confirmCancelBtn"
+  );
+
+const confirmAcceptBtn =
+  document.getElementById(
+    "confirmAcceptBtn"
+  );
+
+
+const appToast =
+  document.getElementById(
+    "appToast"
+  );
+
 const modelSelect = document.getElementById("modelSelect");
 const headerModelSelect =
   document.getElementById(
@@ -391,9 +435,177 @@ function closeHistory() {
   historyPanel.classList.add("hidden");
 }
 
+let toastTimer = null;
+
+
+function showSettingsStatus(
+  message,
+  type = "success"
+) {
+  if (!settingsStatus) {
+    return;
+  }
+
+
+  settingsStatus.textContent =
+    message;
+
+  settingsStatus.classList.remove(
+    "hidden",
+    "success",
+    "error"
+  );
+
+  settingsStatus.classList.add(
+    type
+  );
+}
+
+
+function clearSettingsStatus() {
+  if (!settingsStatus) {
+    return;
+  }
+
+
+  settingsStatus.textContent = "";
+
+  settingsStatus.classList.add(
+    "hidden"
+  );
+
+  settingsStatus.classList.remove(
+    "success",
+    "error"
+  );
+}
+
+
+function showToast(
+  message,
+  type = "normal"
+) {
+  if (!appToast) {
+    return;
+  }
+
+
+  if (toastTimer) {
+    clearTimeout(toastTimer);
+  }
+
+
+  appToast.textContent =
+    message;
+
+  appToast.classList.remove(
+    "hidden",
+    "error",
+    "success"
+  );
+
+
+  if (
+    type === "error" ||
+    type === "success"
+  ) {
+    appToast.classList.add(type);
+  }
+
+
+  toastTimer = setTimeout(
+    () => {
+      appToast.classList.add(
+        "hidden"
+      );
+    },
+    2800
+  );
+}
+
+
+function askConfirmation({
+  title = "Confirm",
+  message = "",
+  confirmText = "Confirm",
+  danger = false
+}) {
+  return new Promise(
+    (resolve) => {
+
+      confirmTitle.textContent =
+        title;
+
+      confirmMessage.textContent =
+        message;
+
+      confirmAcceptBtn.textContent =
+        confirmText;
+
+
+      confirmAcceptBtn.classList.toggle(
+        "danger-button",
+        danger
+      );
+
+      confirmAcceptBtn.classList.toggle(
+        "primary-confirm-button",
+        !danger
+      );
+
+
+      confirmModal.classList.remove(
+        "hidden"
+      );
+
+
+      const finish =
+        (result) => {
+          confirmModal.classList.add(
+            "hidden"
+          );
+
+
+          confirmAcceptBtn.onclick =
+            null;
+
+          confirmCancelBtn.onclick =
+            null;
+
+
+          resolve(result);
+        };
+
+
+      confirmAcceptBtn.onclick =
+        () => finish(true);
+
+
+      confirmCancelBtn.onclick =
+        () => finish(false);
+    }
+  );
+}
+
 function openSettings() {
   loadSettings();
-  settingsModal.classList.remove("hidden");
+
+  clearSettingsStatus();
+
+  apiKeyInput.type =
+    "password";
+
+  toggleApiKeyBtn.textContent =
+    "Show";
+
+  toggleApiKeyBtn.setAttribute(
+    "aria-label",
+    "Show API key"
+  );
+
+  settingsModal.classList.remove(
+    "hidden"
+  );
 }
 
 
@@ -469,7 +681,11 @@ async function saveSettings() {
 */
 
 if (!apiKey && !hasActiveApi) {
-  alert("Please enter your API key.");
+  showSettingsStatus(
+    "Please enter your API key.",
+    "error"
+  );
+
   return;
 }
 
@@ -477,9 +693,11 @@ if (
   apiKey &&
   !apiKey.startsWith("gk-")
 ) {
-  alert(
-    "Your API key should start with gk-"
+  showSettingsStatus(
+    "Your API key should start with gk-",
+    "error"
   );
+
   return;
 }
 
@@ -490,9 +708,21 @@ if (
 */
 
 if (hasActiveApi && apiKey) {
-  const confirmed = confirm(
-    "Replace your currently connected API with this new API key?"
-  );
+
+  const confirmed =
+    await askConfirmation({
+      title:
+        "Replace API key?",
+
+      message:
+        "Your currently connected API will be replaced with this new API key.",
+
+      confirmText:
+        "Replace",
+
+      danger: true
+    });
+
 
   if (!confirmed) {
     return;
@@ -612,8 +842,14 @@ if (accountChanged) {
     );
   }
 
-  closeSettings();
-  return;
+showToast(
+  "API connected.",
+  "success"
+);
+
+closeSettings();
+
+return;
 }
     
 if (modelChanged && currentChatId) {
@@ -629,12 +865,22 @@ if (modelChanged && currentChatId) {
   }
 }
 
+showToast(
+  "Settings saved.",
+  "success"
+);
+
 closeSettings();
 
-  } catch (error) {
-    alert(error.message);
+} catch (error) {
 
-    apiKeyInput.value = "";
+  showSettingsStatus(
+    error.message ||
+      "Could not save settings.",
+    "error"
+  );
+
+  apiKeyInput.value = "";
 
   } finally {
     saveSettingsBtn.disabled = false;
@@ -1344,13 +1590,24 @@ deleteBtn.addEventListener(
   async (event) => {
     event.stopPropagation();
 
-    const confirmed = confirm(
-      `Delete "${chat.title || "New Chat"}"?`
-    );
+const confirmed =
+  await askConfirmation({
+    title:
+      "Delete conversation?",
 
-    if (!confirmed) {
-      return;
-    }
+    message:
+      `Delete "${chat.title || "New Chat"}"? This cannot be undone.`,
+
+    confirmText:
+      "Delete",
+
+    danger: true
+  });
+
+
+if (!confirmed) {
+  return;
+}
 
     deleteBtn.disabled = true;
 
@@ -1369,10 +1626,11 @@ if (currentChatId === chat.id) {
         error
       );
 
-      alert(
-        error.message ||
-        "Could not delete chat"
-      );
+showToast(
+  error.message ||
+    "Could not delete chat.",
+  "error"
+);
 
     } finally {
       deleteBtn.disabled = false;
@@ -1394,10 +1652,11 @@ button.addEventListener(
         error
       );
 
-      alert(
-        error.message ||
-        "Could not open chat"
-      );
+showToast(
+  error.message ||
+    "Could not open chat.",
+  "error"
+);
 
     } finally {
       button.disabled = false;
@@ -1777,8 +2036,13 @@ try {
   }
 
 } catch (error) {
-    alert(error.message);
-    return;
+showToast(
+  error.message ||
+    "Could not create chat.",
+  "error"
+);
+
+return;
   }
 
 
@@ -2300,6 +2564,36 @@ closeSettingsBtn.addEventListener(
   closeSettings
 );
 
+toggleApiKeyBtn.addEventListener(
+  "click",
+  () => {
+
+    const showing =
+      apiKeyInput.type ===
+      "text";
+
+
+    apiKeyInput.type =
+      showing
+        ? "password"
+        : "text";
+
+
+    toggleApiKeyBtn.textContent =
+      showing
+        ? "Show"
+        : "Hide";
+
+
+    toggleApiKeyBtn.setAttribute(
+      "aria-label",
+      showing
+        ? "Show API key"
+        : "Hide API key"
+    );
+  }
+);
+
 saveSettingsBtn.addEventListener(
   "click",
   saveSettings
@@ -2321,6 +2615,19 @@ settingsModal.addEventListener(
   }
 );
 
+confirmModal.addEventListener(
+  "click",
+  (event) => {
+
+    if (
+      event.target ===
+      confirmModal
+    ) {
+      confirmCancelBtn.click();
+    }
+
+  }
+);
 
 sendBtn.addEventListener(
   "click",
@@ -2409,15 +2716,27 @@ document.addEventListener(
       Escape closes open UI.
     */
 
-    if (
-      event.key === "Escape"
-    ) {
-      closeHistory();
+if (
+  event.key === "Escape"
+) {
 
-      closeSettings();
+  if (
+    !confirmModal.classList.contains(
+      "hidden"
+    )
+  ) {
+    confirmCancelBtn.click();
 
-      messageInput.focus();
-    }
+    return;
+  }
+
+
+  closeHistory();
+
+  closeSettings();
+
+  messageInput.focus();
+}
   }
 );
 
