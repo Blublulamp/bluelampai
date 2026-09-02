@@ -18,6 +18,37 @@ function isAllowedOrigin(req) {
   return origin === expectedOrigin;
 }
 
+function getTelegramNonce(req) {
+  const cookieHeader =
+    req.headers.cookie || "";
+
+  const cookies =
+    cookieHeader.split(";");
+
+  for (const cookie of cookies) {
+    const [name, ...valueParts] =
+      cookie.trim().split("=");
+
+    if (
+      name ===
+      "globalblamp_telegram_nonce"
+    ) {
+      const rawValue =
+        valueParts.join("=");
+
+      try {
+        return decodeURIComponent(
+          rawValue
+        );
+      } catch {
+        return "";
+      }
+    }
+  }
+
+  return "";
+}
+
 export default async function handler(
   req,
   res
@@ -32,7 +63,16 @@ if (!isAllowedOrigin(req)) {
     error: "Invalid request origin"
   });
 }
+const expectedNonce =
+  getTelegramNonce(req);
 
+
+if (!expectedNonce) {
+  return res.status(400).json({
+    error:
+      "Telegram login nonce is missing or expired"
+  });
+}
   try {
     const response = await fetch(
       `${HISTORY_API}/auth/telegram`,
@@ -44,9 +84,12 @@ if (!isAllowedOrigin(req)) {
             "application/json"
         },
 
-        body: JSON.stringify(
-          req.body || {}
-        )
+        body: JSON.stringify({
+          ...(req.body || {}),
+
+          expected_nonce:
+            expectedNonce
+        })
       }
     );
 
