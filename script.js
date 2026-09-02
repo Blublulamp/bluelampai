@@ -1611,7 +1611,7 @@ async function startApp() {
   }
 }
 
-function setupTelegramLogin() {
+async function setupTelegramLogin() {
   if (
     !window.Telegram ||
     !window.Telegram.Login
@@ -1623,16 +1623,57 @@ function setupTelegramLogin() {
     return;
   }
 
+let nonceData = null;
 
-  Telegram.Login.init(
+try {
+  const response = await fetch(
+    "/api/auth/telegram-nonce",
     {
-      client_id: 8741110567,
-      scope: ["profile"],
-      lang: "en"
-    },
-
-    handleTelegramOidcResult
+      method: "POST"
+    }
   );
+
+  try {
+    nonceData =
+      await response.json();
+  } catch {
+    nonceData = null;
+  }
+
+  if (
+    !response.ok ||
+    !nonceData?.nonce
+  ) {
+    throw new Error(
+      nonceData?.error ||
+      "Could not prepare Telegram login"
+    );
+  }
+
+} catch (error) {
+  console.error(
+    "Telegram nonce setup failed:",
+    error
+  );
+
+  setLoginMessage(
+    "Could not prepare Telegram login.",
+    "error"
+  );
+
+  return;
+}
+
+Telegram.Login.init(
+  {
+    client_id: 8741110567,
+    scope: ["profile"],
+    lang: "en",
+    nonce: nonceData.nonce
+  },
+
+  handleTelegramOidcResult
+);
 
 
   telegramLoginBtn.addEventListener(
