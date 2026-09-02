@@ -1500,3 +1500,182 @@ body {
   }
 
 }
+/* =========================================
+   REDESIGN V2
+   MODEL PICKER + THEME
+========================================= */
+
+.topbar-actions {
+  display: flex;
+  align-items: center;
+
+  gap: 6px;
+}
+
+
+.header-model-select {
+  height: 38px;
+
+  max-width: 190px;
+
+  padding: 0 30px 0 11px;
+
+  border:
+    1px solid transparent;
+
+  border-radius: 9px;
+
+  outline: none;
+
+  background: transparent;
+  color: var(--text);
+
+  font-size: 13px;
+  font-weight: 500;
+
+  cursor: pointer;
+
+  transition:
+    background 120ms ease,
+    border-color 120ms ease;
+}
+
+
+.header-model-select:hover {
+  background:
+    var(--surface-hover);
+}
+
+
+.header-model-select:focus {
+  border-color:
+    var(--border-strong);
+
+  background:
+    var(--surface);
+}
+
+
+.header-model-select option,
+.header-model-select optgroup {
+  background: var(--surface);
+  color: var(--text);
+}
+
+
+/* =========================================
+   LIGHT THEME
+========================================= */
+
+body.light-theme {
+  --bg: #ffffff;
+
+  --surface: #f4f4f4;
+  --surface-hover: #eeeeee;
+  --surface-active: #e7e7e7;
+
+  --border: #dedede;
+  --border-strong: #c9c9c9;
+
+  --text: #171717;
+  --text-secondary: #5f5f5f;
+  --text-muted: #777777;
+
+  color-scheme: light;
+
+  background: var(--bg);
+  color: var(--text);
+}
+
+
+body.light-theme
+.history-panel {
+  background: #f5f5f5;
+}
+
+
+body.light-theme
+.composer {
+  background: #f4f4f4;
+}
+
+
+body.light-theme
+.sidebar-logo,
+body.light-theme
+.welcome-mark {
+  background: #1f1f1f;
+  color: #ffffff;
+}
+
+
+body.light-theme
+#sendBtn {
+  background: #1f1f1f;
+  color: #ffffff;
+}
+
+
+body.light-theme
+.message.user
+.message-bubble {
+  background: #eeeeee;
+  color: #171717;
+}
+
+
+body.light-theme
+.modal-card {
+  background: #ffffff;
+}
+
+
+body.light-theme
+.modal-card input,
+body.light-theme
+.modal-card select {
+  background: #f5f5f5;
+  color: #171717;
+}
+
+
+body.light-theme
+.login-screen {
+  background: #ffffff;
+}
+
+
+body.light-theme
+.login-card {
+  background: #ffffff;
+  color: #171717;
+}
+
+
+/* Mobile model picker */
+
+@media (max-width: 650px) {
+
+  .header-model-select {
+    max-width: 130px;
+
+    padding-left: 8px;
+
+    font-size: 12px;
+  }
+
+
+  .topbar-title p {
+    display: none;
+  }
+
+}
+
+
+@media (max-width: 430px) {
+
+  .header-model-select {
+    max-width: 105px;
+  }
+
+}
