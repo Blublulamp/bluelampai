@@ -97,15 +97,28 @@
     </button>
 
 
-    <div class="sidebar-label">
-      Chats
-    </div>
+<div class="sidebar-search">
+
+  <input
+    id="chatSearchInput"
+    type="search"
+    placeholder="Search chats"
+    autocomplete="off"
+    aria-label="Search chats"
+  >
+
+</div>
 
 
-    <div
-      id="chatList"
-      class="chat-list"
-    >
+<div class="sidebar-label">
+  Chats
+</div>
+
+
+<div
+  id="chatList"
+  class="chat-list"
+>
 
       <div class="history-empty">
         No chats yet.
@@ -205,7 +218,14 @@
 
 
     <div class="composer-area">
-
+<button
+  id="scrollToLatestBtn"
+  class="scroll-to-latest hidden"
+  type="button"
+  aria-label="Scroll to latest message"
+>
+  ↓
+</button>
       <div class="composer">
 
         <textarea
