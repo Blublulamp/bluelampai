@@ -73,6 +73,37 @@ if (!expectedNonce) {
       "Telegram login nonce is missing or expired"
   });
 }
+
+const idToken =
+  typeof req.body?.id_token ===
+  "string"
+    ? req.body.id_token.trim()
+    : "";
+
+
+if (!idToken) {
+  return res.status(400).json({
+    error:
+      "Telegram ID token is missing"
+  });
+}
+
+const clearNonceCookie =
+  [
+    "globalblamp_telegram_nonce=",
+    "HttpOnly",
+    "Secure",
+    "SameSite=Lax",
+    "Path=/",
+    "Max-Age=0"
+  ].join("; ");
+
+
+res.setHeader(
+  "Set-Cookie",
+  clearNonceCookie
+);
+  
   try {
     const response = await fetch(
       `${HISTORY_API}/auth/telegram`,
@@ -88,11 +119,12 @@ headers: {
 },
 
         body: JSON.stringify({
-          ...(req.body || {}),
+          id_token:
+             idToken,
 
           expected_nonce:
-            expectedNonce
-        })
+             expectedNonce
+         })
       }
     );
 
@@ -142,21 +174,28 @@ headers: {
       read this cookie.
     */
 
-    res.setHeader(
-      "Set-Cookie",
-      [
-        "globalblamp_session=" +
-          encodeURIComponent(
-            sessionToken
-          ),
+const sessionCookie =
+  [
+    "globalblamp_session=" +
+      encodeURIComponent(
+        sessionToken
+      ),
 
-        "HttpOnly",
-        "Secure",
-        "SameSite=Lax",
-        "Path=/",
-        "Max-Age=2592000"
-      ].join("; ")
-    );
+    "HttpOnly",
+    "Secure",
+    "SameSite=Lax",
+    "Path=/",
+    "Max-Age=2592000"
+  ].join("; ");
+
+
+res.setHeader(
+  "Set-Cookie",
+  [
+    clearNonceCookie,
+    sessionCookie
+  ]
+);
 
 
     /*
