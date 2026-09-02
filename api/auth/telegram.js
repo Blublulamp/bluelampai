@@ -1,6 +1,22 @@
 const HISTORY_API =
   "https://history.bluelamp.workers.dev";
 
+function isAllowedOrigin(req) {
+  const origin =
+    req.headers.origin || "";
+
+  if (!origin) {
+    return false;
+  }
+
+  const host =
+    req.headers.host || "";
+
+  const expectedOrigin =
+    `https://${host}`;
+
+  return origin === expectedOrigin;
+}
 
 export default async function handler(
   req,
@@ -11,7 +27,11 @@ export default async function handler(
       error: "Method not allowed"
     });
   }
-
+if (!isAllowedOrigin(req)) {
+  return res.status(403).json({
+    error: "Invalid request origin"
+  });
+}
 
   try {
     const response = await fetch(
