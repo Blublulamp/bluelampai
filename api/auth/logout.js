@@ -1,3 +1,21 @@
+function isAllowedOrigin(req) {
+  const origin =
+    req.headers.origin || "";
+
+  if (!origin) {
+    return false;
+  }
+
+  const host =
+    req.headers.host || "";
+
+  const expectedOrigin =
+    `https://${host}`;
+
+  return origin === expectedOrigin;
+}
+
+
 export default async function handler(
   req,
   res
@@ -8,6 +26,11 @@ export default async function handler(
     });
   }
 
+if (!isAllowedOrigin(req)) {
+  return res.status(403).json({
+    error: "Invalid request origin"
+  });
+}
 
   /*
     Expire the HttpOnly Telegram
