@@ -57,7 +57,9 @@ const sendBtn = document.getElementById("sendBtn");
 
 let messages = [];
 let currentChatId = null;
+let activeChatController = null;
 
+let isGenerating = false;
 let hasActiveApi = false;
 
 let currentModel =
@@ -652,21 +654,42 @@ function escapeHtml(text) {
 
 
 function renderMarkdown(text) {
-  let html = escapeHtml(text);
+  const escaped =
+    escapeHtml(text);
 
 
-  html = html.replace(
+  /*
+    Protect fenced code blocks first.
+  */
+
+  const codeBlocks = [];
+
+
+  let html = escaped.replace(
     /```([a-zA-Z0-9_-]*)\n([\s\S]*?)```/g,
     (match, language, code) => {
+      const index =
+        codeBlocks.length;
+
+
       const safeLanguage =
-        escapeHtml(language || "code");
+        escapeHtml(
+          language || "code"
+        );
+
 
       const safeCode =
-        code.replace(/\n$/, "");
+        code.replace(
+          /\n$/,
+          ""
+        );
 
-      return `
+
+      codeBlocks.push(`
         <div class="code-block">
+
           <div class="code-header">
+
             <span class="code-language">
               ${safeLanguage}
             </span>
@@ -677,13 +700,230 @@ function renderMarkdown(text) {
             >
               Copy
             </button>
+
           </div>
 
           <pre><code>${safeCode}</code></pre>
+
         </div>
-      `;
+      `);
+
+
+      return `@@CODEBLOCK_${index}@@`;
     }
   );
+
+
+  const blocks =
+    html
+      .split(/\n{2,}/)
+      .map(
+        (block) => block.trim()
+      )
+      .filter(Boolean);
+
+
+  html = blocks.map(
+    (block) => {
+
+      /*
+        Standalone code block.
+      */
+
+      if (
+        /^@@CODEBLOCK_\d+@@$/.test(
+          block
+        )
+      ) {
+        return block;
+      }
+
+
+      /*
+        Headings.
+      */
+
+      if (
+        block.startsWith("### ")
+      ) {
+        return `
+          <h3>
+            ${formatInlineMarkdown(
+              block.slice(4)
+            )}
+          </h3>
+        `;
+      }
+
+
+      if (
+        block.startsWith("## ")
+      ) {
+        return `
+          <h2>
+            ${formatInlineMarkdown(
+              block.slice(3)
+            )}
+          </h2>
+        `;
+      }
+
+
+      if (
+        block.startsWith("# ")
+      ) {
+        return `
+          <h1>
+            ${formatInlineMarkdown(
+              block.slice(2)
+            )}
+          </h1>
+        `;
+      }
+
+
+      /*
+        Blockquote.
+      */
+
+      if (
+        block.startsWith("> ")
+      ) {
+        const quote =
+          block
+            .split("\n")
+            .map(
+              (line) =>
+                line.replace(
+                  /^>\s?/,
+                  ""
+                )
+            )
+            .join("<br>");
+
+
+        return `
+          <blockquote>
+            ${formatInlineMarkdown(
+              quote
+            )}
+          </blockquote>
+        `;
+      }
+
+
+      /*
+        Bulleted list.
+      */
+
+      const lines =
+        block.split("\n");
+
+
+      if (
+        lines.every(
+          (line) =>
+            /^[-*]\s+/.test(line)
+        )
+      ) {
+        const items =
+          lines
+            .map(
+              (line) => `
+                <li>
+                  ${formatInlineMarkdown(
+                    line.replace(
+                      /^[-*]\s+/,
+                      ""
+                    )
+                  )}
+                </li>
+              `
+            )
+            .join("");
+
+
+        return `
+          <ul class="markdown-list">
+            ${items}
+          </ul>
+        `;
+      }
+
+
+      /*
+        Numbered list.
+      */
+
+      if (
+        lines.every(
+          (line) =>
+            /^\d+\.\s+/.test(line)
+        )
+      ) {
+        const items =
+          lines
+            .map(
+              (line) => `
+                <li>
+                  ${formatInlineMarkdown(
+                    line.replace(
+                      /^\d+\.\s+/,
+                      ""
+                    )
+                  )}
+                </li>
+              `
+            )
+            .join("");
+
+
+        return `
+          <ol class="markdown-list">
+            ${items}
+          </ol>
+        `;
+      }
+
+
+      /*
+        Normal paragraph.
+      */
+
+      return `
+        <p>
+          ${formatInlineMarkdown(
+            block.replace(
+              /\n/g,
+              "<br>"
+            )
+          )}
+        </p>
+      `;
+    }
+  ).join("");
+
+
+  /*
+    Restore fenced code blocks.
+  */
+
+  html = html.replace(
+    /@@CODEBLOCK_(\d+)@@/g,
+    (match, index) =>
+      codeBlocks[
+        Number(index)
+      ] || ""
+  );
+
+
+  return html;
+}
+
+
+function formatInlineMarkdown(text) {
+  let html =
+    String(text);
 
 
   html = html.replace(
@@ -704,55 +944,7 @@ function renderMarkdown(text) {
   );
 
 
-  html = html.replace(
-    /^### (.+)$/gm,
-    "<h3>$1</h3>"
-  );
-
-
-  html = html.replace(
-    /^## (.+)$/gm,
-    "<h2>$1</h2>"
-  );
-
-
-  html = html.replace(
-    /^# (.+)$/gm,
-    "<h1>$1</h1>"
-  );
-
-
-  html = html.replace(
-    /^> (.+)$/gm,
-    "<blockquote>$1</blockquote>"
-  );
-
-
-  html = html.replace(
-    /^[-*] (.+)$/gm,
-    "<div class=\"markdown-list-item\">• $1</div>"
-  );
-
-
-  html = html.replace(
-    /^\d+\. (.+)$/gm,
-    "<div class=\"markdown-list-item\">$&</div>"
-  );
-
-
-  html = html.replace(
-    /\n{2,}/g,
-    "</p><p>"
-  );
-
-
-  html = html.replace(
-    /\n/g,
-    "<br>"
-  );
-
-
-  return `<p>${html}</p>`;
+  return html;
 }
 
 
@@ -872,13 +1064,104 @@ function addMessage(role, content, isError = false) {
     roleLabel
   );
 
-  messageWrapper.appendChild(
-    bubble
+messageWrapper.appendChild(
+  bubble
+);
+
+
+if (
+  role === "assistant" &&
+  !isError
+) {
+  const actions =
+    document.createElement(
+      "div"
+    );
+
+  actions.className =
+    "message-actions";
+
+
+  const copyBtn =
+    document.createElement(
+      "button"
+    );
+
+  copyBtn.type = "button";
+
+  copyBtn.className =
+    "message-action-button";
+
+  copyBtn.textContent =
+    "Copy";
+
+
+  copyBtn.addEventListener(
+    "click",
+    async () => {
+      try {
+        await navigator.clipboard.writeText(
+          content
+        );
+
+        copyBtn.textContent =
+          "Copied";
+
+        setTimeout(
+          () => {
+            copyBtn.textContent =
+              "Copy";
+          },
+          1200
+        );
+
+      } catch {
+        copyBtn.textContent =
+          "Failed";
+      }
+    }
   );
 
-  chatArea.appendChild(
-    messageWrapper
+
+  const regenerateBtn =
+    document.createElement(
+      "button"
+    );
+
+  regenerateBtn.type =
+    "button";
+
+  regenerateBtn.className =
+    "message-action-button";
+
+  regenerateBtn.textContent =
+    "Regenerate";
+
+
+  regenerateBtn.addEventListener(
+    "click",
+    regenerateLastResponse
   );
+
+
+  actions.appendChild(
+    copyBtn
+  );
+
+  actions.appendChild(
+    regenerateBtn
+  );
+
+
+  messageWrapper.appendChild(
+    actions
+  );
+}
+
+
+chatArea.appendChild(
+  messageWrapper
+);
 
 
   chatArea.scrollTop =
@@ -1302,16 +1585,98 @@ headers: {
 }
 
 function setLoading(isLoading) {
-  sendBtn.disabled = isLoading;
-  messageInput.disabled = isLoading;
+  isGenerating = isLoading;
+
+  messageInput.disabled =
+    isLoading;
+
 
   if (isLoading) {
-    sendBtn.textContent = "…";
+    sendBtn.disabled = false;
+
+    sendBtn.textContent = "■";
+
+    sendBtn.classList.add(
+      "stop-mode"
+    );
+
+    sendBtn.setAttribute(
+      "aria-label",
+      "Stop generating"
+    );
+
   } else {
+    sendBtn.disabled = false;
+
     sendBtn.textContent = "➤";
+
+    sendBtn.classList.remove(
+      "stop-mode"
+    );
+
+    sendBtn.setAttribute(
+      "aria-label",
+      "Send message"
+    );
   }
 }
 
+
+function stopGenerating() {
+  if (
+    !isGenerating ||
+    !activeChatController
+  ) {
+    return;
+  }
+
+
+  activeChatController.abort();
+}
+
+async function regenerateLastResponse() {
+  if (
+    isGenerating ||
+    !messages.length
+  ) {
+    return;
+  }
+
+
+  const lastMessage =
+    messages[
+      messages.length - 1
+    ];
+
+
+  if (
+    lastMessage?.role ===
+    "assistant"
+  ) {
+    messages.pop();
+  }
+
+
+  const lastUserMessage =
+    [...messages]
+      .reverse()
+      .find(
+        (message) =>
+          message.role === "user"
+      );
+
+
+  if (!lastUserMessage) {
+    return;
+  }
+
+
+  messageInput.value =
+    lastUserMessage.content;
+
+
+  await sendMessage();
+}
 
 async function sendMessage() {
   const userText = messageInput.value.trim();
@@ -1368,6 +1733,10 @@ try {
 
 
 try {
+  activeChatController =
+    new AbortController();
+
+
   const response = await fetch(
     "/api/chat",
     {
@@ -1380,7 +1749,10 @@ headers: {
       body: JSON.stringify({
         model: currentModel,
         messages: messages
-      })
+      }),
+
+      signal:
+        activeChatController.signal
     }
   );
 
@@ -1610,16 +1982,32 @@ renderMessageContent(
 
 } catch (error) {
 
-  assistantBubble.textContent =
-    `Error: ${error.message}`;
+  if (
+    error?.name ===
+    "AbortError"
+  ) {
+    if (
+      !assistantBubble.textContent.trim()
+    ) {
+      assistantBubble.textContent =
+        "Generation stopped.";
+    }
 
-  assistantBubble.classList.add(
-    "error-message"
-  );
+  } else {
 
-  console.error(error);
+    assistantBubble.textContent =
+      `Error: ${error.message}`;
+
+    assistantBubble.classList.add(
+      "error-message"
+    );
+
+    console.error(error);
+  }
 
 } finally {
+
+  activeChatController = null;
 
   setLoading(false);
 
@@ -1791,7 +2179,15 @@ settingsModal.addEventListener(
 
 sendBtn.addEventListener(
   "click",
-  sendMessage
+  () => {
+    if (isGenerating) {
+      stopGenerating();
+      return;
+    }
+
+
+    sendMessage();
+  }
 );
 
 
