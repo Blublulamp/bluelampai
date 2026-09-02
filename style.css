@@ -2155,3 +2155,266 @@ body.light-theme
   }
 
 }
+/* =========================================
+   REDESIGN V7
+   SETTINGS + FEEDBACK
+========================================= */
+
+.password-field {
+  position: relative;
+
+  width: 100%;
+}
+
+
+.password-field input {
+  padding-right: 70px;
+}
+
+
+.password-toggle {
+  position: absolute;
+
+  top: 50%;
+  right: 8px;
+
+  transform:
+    translateY(-50%);
+
+  min-width: 52px;
+  height: 34px;
+
+  padding: 0 9px;
+
+  border-radius: 8px;
+
+  background: transparent;
+
+  color:
+    var(--text-secondary);
+
+  font-size: 12px;
+}
+
+
+.password-toggle:hover {
+  background:
+    var(--surface-hover);
+
+  color:
+    var(--text);
+}
+
+
+.settings-status {
+  margin-top: 10px;
+
+  padding:
+    10px
+    12px;
+
+  border-radius: 9px;
+
+  font-size: 12px;
+  line-height: 1.45;
+}
+
+
+.settings-status.error {
+  background: #2b1717;
+  color: #ffb2b2;
+}
+
+
+.settings-status.success {
+  background: #17251b;
+  color: #a9e9ba;
+}
+
+
+.secondary-danger-button {
+  width: 100%;
+  height: 46px;
+
+  margin-top: 10px;
+
+  border-radius: 11px;
+
+  background: transparent;
+
+  color: #ffaaaa;
+
+  font-weight: 600;
+}
+
+
+.secondary-danger-button:hover {
+  background: #2b1919;
+}
+
+
+.confirm-card {
+  max-width: 400px;
+}
+
+
+.confirm-card h2 {
+  margin-bottom: 10px;
+}
+
+
+.confirm-message {
+  color:
+    var(--text-secondary);
+
+  font-size: 14px;
+  line-height: 1.55;
+}
+
+
+.confirm-actions {
+  margin-top: 24px;
+
+  display: flex;
+  justify-content: flex-end;
+
+  gap: 8px;
+}
+
+
+.secondary-button,
+.danger-button,
+.primary-confirm-button {
+  min-height: 40px;
+
+  padding:
+    0
+    14px;
+
+  border-radius: 9px;
+
+  font-size: 13px;
+  font-weight: 600;
+}
+
+
+.secondary-button {
+  background:
+    var(--surface-hover);
+
+  color:
+    var(--text);
+}
+
+
+.primary-confirm-button {
+  background:
+    var(--text);
+
+  color:
+    var(--bg);
+}
+
+
+.danger-button {
+  background: #b42323;
+  color: #ffffff;
+}
+
+
+.danger-button:hover {
+  background: #c52a2a;
+}
+
+
+.app-toast {
+  position: fixed;
+
+  left: 50%;
+  bottom: 24px;
+
+  z-index: 3000;
+
+  max-width:
+    min(
+      calc(100vw - 32px),
+      420px
+    );
+
+  padding:
+    10px
+    14px;
+
+  transform:
+    translateX(-50%);
+
+  border:
+    1px solid
+    var(--border-strong);
+
+  border-radius: 10px;
+
+  background:
+    var(--surface-active);
+
+  color:
+    var(--text);
+
+  font-size: 13px;
+
+  box-shadow:
+    0 10px 30px
+    rgba(0, 0, 0, 0.25);
+}
+
+
+.app-toast.error {
+  background: #351919;
+  color: #ffc0c0;
+}
+
+
+.app-toast.success {
+  background: #183020;
+  color: #baf1c9;
+}
+
+
+body.light-theme
+.settings-status.error {
+  background: #fff0f0;
+  color: #9c2020;
+}
+
+
+body.light-theme
+.settings-status.success {
+  background: #edf9f0;
+  color: #246337;
+}
+
+
+body.light-theme
+.secondary-danger-button {
+  color: #a62424;
+}
+
+
+body.light-theme
+.secondary-danger-button:hover {
+  background: #fff0f0;
+}
+
+
+body.light-theme
+.app-toast.error {
+  background: #fff0f0;
+  color: #9c2020;
+}
+
+
+body.light-theme
+.app-toast.success {
+  background: #edf9f0;
+  color: #246337;
+}
