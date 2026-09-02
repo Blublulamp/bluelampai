@@ -79,10 +79,13 @@ if (!expectedNonce) {
       {
         method: "POST",
 
-        headers: {
-          "Content-Type":
-            "application/json"
-        },
+headers: {
+  "Content-Type":
+    "application/json",
+
+  "X-Internal-Secret":
+    process.env.INTERNAL_API_SECRET
+},
 
         body: JSON.stringify({
           ...(req.body || {}),
