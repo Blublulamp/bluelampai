@@ -272,15 +272,37 @@
       </div>
 
 
-      <label for="apiKeyInput">
-        API Key
-      </label>
+<label for="apiKeyInput">
+  API Key
+</label>
 
-      <input
-        id="apiKeyInput"
-        type="password"
-        placeholder="gk-..."
-      >
+
+<div class="password-field">
+
+  <input
+    id="apiKeyInput"
+    type="password"
+    placeholder="gk-..."
+    autocomplete="off"
+  >
+
+  <button
+    id="toggleApiKeyBtn"
+    class="password-toggle"
+    type="button"
+    aria-label="Show API key"
+  >
+    Show
+  </button>
+
+</div>
+
+
+<div
+  id="settingsStatus"
+  class="settings-status hidden"
+  role="status"
+></div>
 
 
       <label for="modelSelect">
@@ -380,17 +402,81 @@
       </select>
 
 
-      <button id="saveSettingsBtn" class="primary-button">
-        Save Settings
+<button
+  id="saveSettingsBtn"
+  class="primary-button"
+  type="button"
+>
+  Save Settings
+</button>
+
+
+<button
+  id="logoutBtn"
+  class="secondary-danger-button"
+  type="button"
+>
+  Logout
+</button>
+
+    </div>
+
+  </div>
+
+<div
+  id="confirmModal"
+  class="modal hidden"
+  role="dialog"
+  aria-modal="true"
+  aria-labelledby="confirmTitle"
+>
+
+  <div class="modal-card confirm-card">
+
+    <h2 id="confirmTitle">
+      Confirm
+    </h2>
+
+
+    <p
+      id="confirmMessage"
+      class="confirm-message"
+    ></p>
+
+
+    <div class="confirm-actions">
+
+      <button
+        id="confirmCancelBtn"
+        class="secondary-button"
+        type="button"
+      >
+        Cancel
       </button>
-      <button id="logoutBtn" class="primary-button">
-        Logout
+
+
+      <button
+        id="confirmAcceptBtn"
+        class="danger-button"
+        type="button"
+      >
+        Confirm
       </button>
 
     </div>
 
   </div>
 
+</div>
+
+
+<div
+  id="appToast"
+  class="app-toast hidden"
+  role="status"
+  aria-live="polite"
+></div>
+  
   <script src="https://telegram.org/js/telegram-login.js"></script>
   <script src="script.js"></script>
 
