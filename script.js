@@ -568,6 +568,12 @@ const modelChanged =
 
 currentModel = model;
 
+modelSelect.value =
+  currentModel;
+
+headerModelSelect.value =
+  currentModel;
+
 apiKeyInput.value = "";
 
 localStorage.removeItem(
@@ -635,17 +641,204 @@ function removeWelcomeMessage() {
 }
 
 
+function escapeHtml(text) {
+  return String(text)
+    .replaceAll("&", "&amp;")
+    .replaceAll("<", "&lt;")
+    .replaceAll(">", "&gt;")
+    .replaceAll('"', "&quot;")
+    .replaceAll("'", "&#039;");
+}
+
+
+function renderMarkdown(text) {
+  let html = escapeHtml(text);
+
+
+  html = html.replace(
+    /```([a-zA-Z0-9_-]*)\n([\s\S]*?)```/g,
+    (match, language, code) => {
+      const safeLanguage =
+        escapeHtml(language || "code");
+
+      const safeCode =
+        code.replace(/\n$/, "");
+
+      return `
+        <div class="code-block">
+          <div class="code-header">
+            <span class="code-language">
+              ${safeLanguage}
+            </span>
+
+            <button
+              class="copy-code-button"
+              type="button"
+            >
+              Copy
+            </button>
+          </div>
+
+          <pre><code>${safeCode}</code></pre>
+        </div>
+      `;
+    }
+  );
+
+
+  html = html.replace(
+    /`([^`\n]+)`/g,
+    "<code class=\"inline-code\">$1</code>"
+  );
+
+
+  html = html.replace(
+    /\*\*([^*]+)\*\*/g,
+    "<strong>$1</strong>"
+  );
+
+
+  html = html.replace(
+    /\*([^*\n]+)\*/g,
+    "<em>$1</em>"
+  );
+
+
+  html = html.replace(
+    /^### (.+)$/gm,
+    "<h3>$1</h3>"
+  );
+
+
+  html = html.replace(
+    /^## (.+)$/gm,
+    "<h2>$1</h2>"
+  );
+
+
+  html = html.replace(
+    /^# (.+)$/gm,
+    "<h1>$1</h1>"
+  );
+
+
+  html = html.replace(
+    /^> (.+)$/gm,
+    "<blockquote>$1</blockquote>"
+  );
+
+
+  html = html.replace(
+    /^[-*] (.+)$/gm,
+    "<div class=\"markdown-list-item\">• $1</div>"
+  );
+
+
+  html = html.replace(
+    /^\d+\. (.+)$/gm,
+    "<div class=\"markdown-list-item\">$&</div>"
+  );
+
+
+  html = html.replace(
+    /\n{2,}/g,
+    "</p><p>"
+  );
+
+
+  html = html.replace(
+    /\n/g,
+    "<br>"
+  );
+
+
+  return `<p>${html}</p>`;
+}
+
+
+function setupCopyButtons(container) {
+  const buttons =
+    container.querySelectorAll(
+      ".copy-code-button"
+    );
+
+
+  buttons.forEach((button) => {
+    button.addEventListener(
+      "click",
+      async () => {
+        const code =
+          button
+            .closest(".code-block")
+            ?.querySelector("code")
+            ?.textContent || "";
+
+
+        try {
+          await navigator.clipboard.writeText(
+            code
+          );
+
+          button.textContent = "Copied";
+
+          setTimeout(
+            () => {
+              button.textContent = "Copy";
+            },
+            1200
+          );
+
+        } catch {
+          button.textContent = "Failed";
+
+          setTimeout(
+            () => {
+              button.textContent = "Copy";
+            },
+            1200
+          );
+        }
+      }
+    );
+  });
+}
+
+
+function renderMessageContent(
+  bubble,
+  content,
+  role,
+  isError = false
+) {
+  if (isError || role === "user") {
+    bubble.textContent = content;
+    return;
+  }
+
+
+  bubble.innerHTML =
+    renderMarkdown(content);
+
+
+  setupCopyButtons(bubble);
+}
+
+
 function addMessage(role, content, isError = false) {
   removeWelcomeMessage();
 
-  const messageWrapper = document.createElement("div");
+  const messageWrapper =
+    document.createElement("div");
 
-  messageWrapper.className = `message ${role}`;
+  messageWrapper.className =
+    `message ${role}`;
 
 
-  const roleLabel = document.createElement("div");
+  const roleLabel =
+    document.createElement("div");
 
-  roleLabel.className = "message-role";
+  roleLabel.className =
+    "message-role";
 
   roleLabel.textContent =
     role === "user"
@@ -653,23 +846,44 @@ function addMessage(role, content, isError = false) {
       : currentModel;
 
 
-  const bubble = document.createElement("div");
+  const bubble =
+    document.createElement("div");
 
-  bubble.className = "message-bubble";
+  bubble.className =
+    "message-bubble";
+
 
   if (isError) {
-    bubble.classList.add("error-message");
+    bubble.classList.add(
+      "error-message"
+    );
   }
 
-  bubble.textContent = content;
+
+  renderMessageContent(
+    bubble,
+    content,
+    role,
+    isError
+  );
 
 
-  messageWrapper.appendChild(roleLabel);
-  messageWrapper.appendChild(bubble);
+  messageWrapper.appendChild(
+    roleLabel
+  );
 
-  chatArea.appendChild(messageWrapper);
+  messageWrapper.appendChild(
+    bubble
+  );
 
-  chatArea.scrollTop = chatArea.scrollHeight;
+  chatArea.appendChild(
+    messageWrapper
+  );
+
+
+  chatArea.scrollTop =
+    chatArea.scrollHeight;
+
 
   return bubble;
 }
@@ -1220,7 +1434,7 @@ headers: {
   let buffer = "";
 
 
-  assistantBubble.textContent = "";
+  assistantBubble.innerHTML = "";
 
 
   while (true) {
@@ -1295,8 +1509,11 @@ headers: {
 
       assistantText += chunk;
 
-      assistantBubble.textContent =
-        assistantText;
+renderMessageContent(
+  assistantBubble,
+  assistantText,
+  "assistant"
+);
 
 
       chatArea.scrollTop =
@@ -1350,8 +1567,11 @@ headers: {
         if (chunk) {
           assistantText += chunk;
 
-          assistantBubble.textContent =
-            assistantText;
+renderMessageContent(
+  assistantBubble,
+  assistantText,
+  "assistant"
+);
         }
 
       } catch {
