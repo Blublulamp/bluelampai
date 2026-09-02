@@ -1,3 +1,38 @@
+const HISTORY_API =
+  "https://history.bluelamp.workers.dev";
+
+
+function getSessionToken(req) {
+  const cookieHeader =
+    req.headers.cookie || "";
+
+  const cookies =
+    cookieHeader.split(";");
+
+  for (const cookie of cookies) {
+    const [name, ...valueParts] =
+      cookie.trim().split("=");
+
+    if (
+      name ===
+      "globalblamp_session"
+    ) {
+      const rawValue =
+        valueParts.join("=");
+
+      try {
+        return decodeURIComponent(
+          rawValue
+        );
+      } catch {
+        return "";
+      }
+    }
+  }
+
+  return "";
+}
+
 function isAllowedOrigin(req) {
   const origin =
     req.headers.origin || "";
@@ -32,25 +67,55 @@ if (!isAllowedOrigin(req)) {
   });
 }
 
-  /*
-    Expire the HttpOnly Telegram
-    session cookie immediately.
-  */
-
-  res.setHeader(
-    "Set-Cookie",
-    [
-      "globalblamp_session=",
-      "HttpOnly",
-      "Secure",
-      "SameSite=Lax",
-      "Path=/",
-      "Max-Age=0"
-    ].join("; ")
-  );
+const sessionToken =
+  getSessionToken(req);
 
 
-  return res.status(200).json({
-    ok: true
-  });
+if (sessionToken) {
+  try {
+    await fetch(
+      `${HISTORY_API}/auth/logout`,
+      {
+        method: "POST",
+
+        headers: {
+          "Authorization":
+            `Bearer ${sessionToken}`
+        }
+      }
+    );
+
+  } catch (error) {
+    console.error(
+      "Worker logout request failed:",
+      error
+    );
+  }
+}
+
+
+/*
+  Always clear the browser cookie.
+
+  Even if the Worker request temporarily
+  fails, the local browser session should
+  still be removed.
+*/
+
+res.setHeader(
+  "Set-Cookie",
+  [
+    "globalblamp_session=",
+    "HttpOnly",
+    "Secure",
+    "SameSite=Lax",
+    "Path=/",
+    "Max-Age=0"
+  ].join("; ")
+);
+
+
+return res.status(200).json({
+  ok: true
+});
 }
