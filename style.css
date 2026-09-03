@@ -1484,7 +1484,7 @@ border:
 
 
   .app.sidebar-collapsed {
-    padding-left: 0;
+    padding-left: 58px;
   }
 
 
@@ -1498,14 +1498,16 @@ border:
       translateX(0);
 
     transition:
-      transform 160ms ease;
+      width 160ms ease;
   }
 
 
   .app.sidebar-collapsed
   .history-panel {
-    transform:
-      translateX(-100%);
+    width: 58px;
+
+    padding-left: 8px;
+    padding-right: 8px;
   }
 
 
@@ -1541,6 +1543,79 @@ border:
     padding-right: 30px;
   }
 
+  .app.sidebar-collapsed
+  .sidebar-brand-text,
+
+  .app.sidebar-collapsed
+  .new-chat-button,
+
+  .app.sidebar-collapsed
+  .sidebar-search,
+
+  .app.sidebar-collapsed
+  .sidebar-label,
+
+  .app.sidebar-collapsed
+  .chat-list,
+
+  .app.sidebar-collapsed
+  .sidebar-profile-info,
+
+  .app.sidebar-collapsed
+  .sidebar-profile-more {
+    display: none;
+  }
+
+
+  .app.sidebar-collapsed
+  .sidebar-header {
+    justify-content: center;
+
+    padding-left: 0;
+    padding-right: 0;
+  }
+
+
+  .app.sidebar-collapsed
+  .sidebar-close {
+    margin: 0;
+  }
+
+
+  .app.sidebar-collapsed
+  .sidebar-profile-wrap {
+    margin-top: auto;
+
+    padding-top: 8px;
+
+    border-top: 0;
+  }
+
+
+  .app.sidebar-collapsed
+  .sidebar-profile {
+    width: 42px;
+    min-height: 42px;
+
+    padding: 4px;
+
+    justify-content: center;
+
+    gap: 0;
+
+    border-radius: 10px;
+  }
+
+
+  .app.sidebar-collapsed
+  .sidebar-profile
+  .profile-avatar {
+    width: 34px;
+    height: 34px;
+
+    flex-basis: 34px;
+  }
+  
 }
 
 
