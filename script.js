@@ -1257,10 +1257,14 @@ function renderMessageContent(
   role,
   isError = false
 ) {
-  if (isError || role === "user") {
-    bubble.textContent = content;
-    return;
-  }
+bubble.dataset.rawContent =
+  String(content);
+
+
+if (isError || role === "user") {
+  bubble.textContent = content;
+  return;
+}
 
 
   bubble.innerHTML =
@@ -1356,7 +1360,8 @@ if (
     async () => {
       try {
         await navigator.clipboard.writeText(
-          content
+          bubble.dataset.rawContent ||
+            content
         );
 
         copyBtn.textContent =
@@ -1377,36 +1382,9 @@ if (
     }
   );
 
-
-  const regenerateBtn =
-    document.createElement(
-      "button"
-    );
-
-  regenerateBtn.type =
-    "button";
-
-  regenerateBtn.className =
-    "message-action-button";
-
-  regenerateBtn.textContent =
-    "Regenerate";
-
-
-  regenerateBtn.addEventListener(
-    "click",
-    regenerateLastResponse
-  );
-
-
   actions.appendChild(
     copyBtn
   );
-
-  actions.appendChild(
-    regenerateBtn
-  );
-
 
   messageWrapper.appendChild(
     actions
@@ -1743,31 +1721,27 @@ headerModelSelect.value =
   chatArea.innerHTML = "";
 
 if (!messages.length) {
-  const welcomeMessage =
-    document.createElement("div");
 
-  welcomeMessage.className =
-    "welcome-message";
+  chatArea.innerHTML = `
+    <div class="welcome-message">
 
+      <div class="welcome-mark">
+        G
+      </div>
 
-  const title =
-    document.createElement("h2");
+      <h2>
+        ${escapeHtml(
+          chat.title || "New Chat"
+        )}
+      </h2>
 
-  title.textContent =
-    chat.title || "New Chat";
+      <p>
+        Start a conversation with GlobalBLAMP AI.
+      </p>
 
+    </div>
+  `;
 
-  const description =
-    document.createElement("p");
-
-  description.textContent =
-    "Start chatting.";
-
-
-  welcomeMessage.appendChild(title);
-  welcomeMessage.appendChild(description);
-
-  chatArea.appendChild(welcomeMessage);
 
 } else {
 
@@ -1969,50 +1943,6 @@ function stopGenerating() {
 
 
   activeChatController.abort();
-}
-
-async function regenerateLastResponse() {
-  if (
-    isGenerating ||
-    !messages.length
-  ) {
-    return;
-  }
-
-
-  const lastMessage =
-    messages[
-      messages.length - 1
-    ];
-
-
-  if (
-    lastMessage?.role ===
-    "assistant"
-  ) {
-    messages.pop();
-  }
-
-
-  const lastUserMessage =
-    [...messages]
-      .reverse()
-      .find(
-        (message) =>
-          message.role === "user"
-      );
-
-
-  if (!lastUserMessage) {
-    return;
-  }
-
-
-  messageInput.value =
-    lastUserMessage.content;
-
-
-  await sendMessage();
 }
 
 async function sendMessage() {
