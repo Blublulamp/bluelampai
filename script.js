@@ -113,6 +113,8 @@ let currentChatId = null;
 let activeChatController = null;
 
 let isGenerating = false;
+let sendInFlight = false;
+
 let hasActiveApi = false;
 
 let currentModel =
@@ -614,6 +616,9 @@ function closeSettings() {
 }
 
 async function logout() {
+  await settleActiveSendBeforeNavigation();
+
+
   try {
     await fetch(
       "/api/auth/logout",
@@ -1621,8 +1626,10 @@ button.addEventListener(
   async () => {
     button.disabled = true;
 
-    try {
-      await openSavedChat(chat);
+try {
+  await settleActiveSendBeforeNavigation();
+
+  await openSavedChat(chat);
 
     } catch (error) {
       console.error(
@@ -1946,12 +1953,40 @@ function stopGenerating() {
   activeChatController.abort();
 }
 
+async function settleActiveSendBeforeNavigation() {
+  if (isGenerating) {
+    stopGenerating();
+  }
+
+
+  while (sendInFlight) {
+    await new Promise(
+      (resolve) => {
+        setTimeout(
+          resolve,
+          25
+        );
+      }
+    );
+  }
+}
+
 async function sendMessage() {
-  const userText = messageInput.value.trim();
+  if (sendInFlight) {
+    return;
+  }
+
+
+  const userText =
+    messageInput.value.trim();
+
 
   if (!userText) {
     return;
   }
+
+
+  sendInFlight = true;
 
 messageInput.value = "";
 
@@ -1967,14 +2002,18 @@ try {
   }
 
 } catch (error) {
-showToast(
-  error.message ||
-    "Could not create chat.",
-  "error"
-);
+  sendInFlight = false;
 
-return;
-  }
+
+  showToast(
+    error.message ||
+      "Could not create chat.",
+    "error"
+  );
+
+
+  return;
+}
 
 
   addMessage("user", userText);
@@ -2291,6 +2330,8 @@ renderMessageContent(
 
   setLoading(false);
 
+  sendInFlight = false;
+
   messageInput.focus();
 
 
@@ -2394,7 +2435,10 @@ historyBackdrop.addEventListener(
 
 newChatBtn.addEventListener(
   "click",
-  () => {
+  async () => {
+    await settleActiveSendBeforeNavigation();
+
+
     resetToNewChat();
 
 
@@ -2411,10 +2455,18 @@ newChatBtn.addEventListener(
 );
 headerModelSelect.addEventListener(
   "change",
-  () => {
+  async () => {
+    const selectedModel =
+      headerModelSelect.value;
+
+
+    await settleActiveSendBeforeNavigation();
+
+
     setSelectedModel(
-      headerModelSelect.value
+      selectedModel
     );
+
 
     messageInput.focus();
   }
