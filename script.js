@@ -117,6 +117,52 @@ let sendInFlight = false;
 
 let hasActiveApi = false;
 
+
+const DRAFT_STORAGE_KEY =
+  "globalblamp_message_draft";
+
+
+function saveMessageDraft() {
+  const draft =
+    messageInput.value;
+
+
+  if (draft) {
+    sessionStorage.setItem(
+      DRAFT_STORAGE_KEY,
+      draft
+    );
+
+  } else {
+    sessionStorage.removeItem(
+      DRAFT_STORAGE_KEY
+    );
+  }
+}
+
+
+function restoreMessageDraft() {
+  const draft =
+    sessionStorage.getItem(
+      DRAFT_STORAGE_KEY
+    ) || "";
+
+
+  messageInput.value =
+    draft;
+
+
+  resizeTextarea();
+  updateSendButtonState();
+}
+
+
+function clearMessageDraft() {
+  sessionStorage.removeItem(
+    DRAFT_STORAGE_KEY
+  );
+}
+
 let currentModel =
   localStorage.getItem(
     "globalblamp_model"
@@ -1279,6 +1325,101 @@ if (isError || role === "user") {
   setupCopyButtons(bubble);
 }
 
+function addAssistantRetryAction(
+  assistantBubble,
+  retryContext
+) {
+  const messageWrapper =
+    assistantBubble.closest(
+      ".message.assistant"
+    );
+
+
+  const actions =
+    messageWrapper?.querySelector(
+      ".message-actions"
+    );
+
+
+  if (!actions) {
+    return;
+  }
+
+
+  actions
+    .querySelector(
+      ".retry-assistant-button"
+    )
+    ?.remove();
+
+
+  const retryBtn =
+    document.createElement(
+      "button"
+    );
+
+
+  retryBtn.type = "button";
+
+  retryBtn.className =
+    "message-action-button retry-assistant-button";
+
+  retryBtn.textContent =
+    "Retry";
+
+
+  retryBtn.addEventListener(
+    "click",
+    async () => {
+      const lastMessage =
+        messages[
+          messages.length - 1
+        ];
+
+
+      const stillRetryable =
+        currentChatId ===
+          retryContext.chatId &&
+        messages.length ===
+          retryContext.messageCount &&
+        lastMessage?.role ===
+          "user" &&
+        lastMessage?.content ===
+          retryContext.userText &&
+        !sendInFlight;
+
+
+      if (!stillRetryable) {
+        retryBtn.remove();
+
+        showToast(
+          "This response can no longer be retried.",
+          "error"
+        );
+
+        return;
+      }
+
+
+      retryBtn.remove();
+
+
+      await sendMessage({
+        retryLastUser: true,
+        retryBubble:
+          assistantBubble,
+        retryContext
+      });
+    }
+  );
+
+
+  actions.appendChild(
+    retryBtn
+  );
+}
+
+
 
 function addMessage(role, content, isError = false) {
   removeWelcomeMessage();
@@ -1985,14 +2126,33 @@ async function settleActiveSendBeforeNavigation() {
   }
 }
 
-async function sendMessage() {
+async function sendMessage(
+  options = {}
+) {
+  const retryLastUser =
+    options.retryLastUser === true;
+
+
+  const retryBubble =
+    options.retryBubble || null;
+
+
+  const existingRetryContext =
+    options.retryContext || null;
+
+
   if (sendInFlight) {
     return;
   }
 
 
-  const userText =
-    messageInput.value.trim();
+  let userText =
+    retryLastUser
+      ? String(
+          existingRetryContext
+            ?.userText || ""
+        )
+      : messageInput.value.trim();
 
 
   if (!userText) {
@@ -2000,43 +2160,100 @@ async function sendMessage() {
   }
 
 
-sendInFlight = true;
-
-messageInput.value = "";
-
-messageInput.style.height =
-  "auto";
-
-resizeTextarea();
-
-updateSendButtonState();
+  if (retryLastUser) {
+    const lastMessage =
+      messages[
+        messages.length - 1
+      ];
 
 
-try {
-  if (!currentChatId) {
-    await createCloudChat(userText);
+    const stillRetryable =
+      currentChatId ===
+        existingRetryContext
+          ?.chatId &&
+      messages.length ===
+        existingRetryContext
+          ?.messageCount &&
+      lastMessage?.role ===
+        "user" &&
+      lastMessage?.content ===
+        userText;
+
+
+    if (!stillRetryable) {
+      showToast(
+        "This response can no longer be retried.",
+        "error"
+      );
+
+      return;
+    }
   }
 
-} catch (error) {
-  sendInFlight = false;
+
+  sendInFlight = true;
+
+
+  if (!retryLastUser) {
+    messageInput.value = "";
+
+    messageInput.style.height =
+      "auto";
+
+    resizeTextarea();
+  }
+
 
   updateSendButtonState();
 
 
-  showToast(
-    error.message ||
-      "Could not create chat.",
-    "error"
+  try {
+    if (
+      !retryLastUser &&
+      !currentChatId
+    ) {
+      await createCloudChat(
+        userText
+      );
+    }
+
+  } catch (error) {
+    sendInFlight = false;
+
+
+    if (!retryLastUser) {
+      messageInput.value =
+        userText;
+
+      resizeTextarea();
+    }
+
+
+    updateSendButtonState();
+
+
+    showToast(
+      error.message ||
+        "Could not create chat.",
+      "error"
+    );
+
+
+    return;
+  }
+
+
+if (!retryLastUser) {
+  addMessage(
+    "user",
+    userText
   );
 
-
-  return;
+  clearMessageDraft();
 }
 
 
-  addMessage("user", userText);
-
-
+if (!retryLastUser) {
   messages.push({
     role: "user",
     content: userText
@@ -2055,15 +2272,55 @@ try {
       error
     );
   }
+}
 
 
-  setLoading(true);
+const retryContext =
+  retryLastUser
+    ? existingRetryContext
+    : {
+        chatId:
+          currentChatId,
+
+        messageCount:
+          messages.length,
+
+        userText
+      };
 
 
-  const assistantBubble = addMessage(
-    "assistant",
-    "Thinking..."
+setLoading(true);
+
+
+let assistantBubble;
+
+
+if (
+  retryLastUser &&
+  retryBubble
+) {
+  assistantBubble =
+    retryBubble;
+
+
+  assistantBubble.classList.remove(
+    "error-message"
   );
+
+
+  renderMessageContent(
+    assistantBubble,
+    "Thinking...",
+    "assistant"
+  );
+
+} else {
+  assistantBubble =
+    addMessage(
+      "assistant",
+      "Thinking..."
+    );
+}
 
 
 try {
@@ -2330,17 +2587,28 @@ renderMessageContent(
         "Generation stopped.";
     }
 
-  } else {
+} else {
+  renderMessageContent(
+    assistantBubble,
+    `Error: ${error.message}`,
+    "assistant",
+    true
+  );
 
-    assistantBubble.textContent =
-      `Error: ${error.message}`;
 
-    assistantBubble.classList.add(
-      "error-message"
-    );
+  assistantBubble.classList.add(
+    "error-message"
+  );
 
-    console.error(error);
-  }
+
+  addAssistantRetryAction(
+    assistantBubble,
+    retryContext
+  );
+
+
+  console.error(error);
+}
 
 } finally {
 
@@ -2650,7 +2918,10 @@ messageInput.addEventListener(
   "input",
   () => {
     resizeTextarea();
+
     updateSendButtonState();
+
+    saveMessageDraft();
   }
 );
 
@@ -2755,7 +3026,7 @@ async function startApp() {
 
   loadSettings();
 
-  updateSendButtonState();
+  restoreMessageDraft();
 
 
   /*
