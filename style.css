@@ -971,14 +971,14 @@ body {
   z-index: 500;
 
   width: 100%;
-  min-height: 58px;
+  min-height: 54px;
 
   flex: 0 0 auto;
 
-  padding:
-    calc(8px + env(safe-area-inset-top))
-    14px
-    8px;
+padding:
+  calc(6px + env(safe-area-inset-top))
+  14px
+  6px;
 
   display: flex;
   align-items: center;
@@ -1160,11 +1160,11 @@ body {
 
 .message {
   width: 100%;
-  max-width: var(--content-width);
+  max-width: 740px;
 
   margin:
     0 auto
-    28px;
+    22px;
 }
 
 
@@ -1190,7 +1190,7 @@ body {
   color: var(--text);
 
   font-size: 15px;
-  line-height: 1.7;
+  line-height: 1.62;
 
   white-space: pre-wrap;
   overflow-wrap: anywhere;
@@ -1211,19 +1211,22 @@ body {
 .message.user
 .message-bubble {
   width: fit-content;
+
   max-width: min(
-    82%,
-    620px
+    78%,
+    560px
   );
 
   padding:
-    10px
-    14px;
+    9px
+    13px;
 
   border-radius: 18px;
 
   background: #252525;
   color: var(--text);
+
+  line-height: 1.5;
 }
 
 
@@ -1272,17 +1275,17 @@ body {
 
 .composer {
   width: 100%;
-  max-width: 780px;
+  max-width: 760px;
 
-  min-height: 56px;
+  min-height: 52px;
 
   margin: 0 auto;
 
   padding:
-    8px
-    8px
-    8px
-    16px;
+    6px
+    7px
+    6px
+    15px;
 
   display: flex;
   align-items: center;
@@ -1290,11 +1293,11 @@ body {
   gap: 8px;
 
   border:
-    1px solid var(--border-strong);
+    1px solid var(--border);
 
-  border-radius: 22px;
+  border-radius: 26px;
 
-  background: #1b1b1b;
+  background: #1f1f1f;
 }
 
 
@@ -1302,11 +1305,11 @@ body {
   flex: 1;
 
   min-width: 0;
-  min-height: 40px;
+  min-height: 38px;
   max-height: 150px;
 
   padding:
-    9px
+    8px
     2px;
 
   border: 0;
@@ -1339,10 +1342,10 @@ body {
 
 
 #sendBtn {
-  width: 40px;
-  height: 40px;
+  width: 36px;
+  height: 36px;
 
-  flex: 0 0 40px;
+  flex: 0 0 36px;
 
   border-radius: 50%;
 
@@ -1544,9 +1547,9 @@ body {
   }
 
 
-  .topbar {
-    min-height: 58px;
-  }
+.topbar {
+  min-height: 54px;
+}
 
 
   .chat-area {
@@ -1554,14 +1557,14 @@ body {
   }
 
 
-  .composer-area {
-    padding-left: 10px;
-    padding-right: 10px;
-  }
+.composer-area {
+  padding-left: 8px;
+  padding-right: 8px;
+}
 
 
   .composer {
-    border-radius: 20px;
+    border-radius: 24px;
   }
 
 }
@@ -1751,7 +1754,7 @@ body.light-theme
 
 .message.assistant
 .message-bubble > p {
-  margin: 0 0 14px;
+  margin: 0 0 11px;
 }
 
 
@@ -1768,7 +1771,7 @@ body.light-theme
 .message.assistant
 .message-bubble h3 {
   margin:
-    22px 0
+    18px 0
     10px;
 
   color: var(--text);
