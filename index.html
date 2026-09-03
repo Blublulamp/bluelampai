@@ -129,6 +129,48 @@
 
     </div>
 
+<div class="sidebar-profile-wrap">
+
+  <button
+    id="sidebarProfileBtn"
+    class="sidebar-profile"
+    type="button"
+    aria-label="Open profile"
+  >
+
+    <div
+      id="sidebarProfileAvatar"
+      class="profile-avatar"
+      aria-hidden="true"
+    >
+      U
+    </div>
+
+
+    <div class="sidebar-profile-info">
+
+      <strong id="sidebarProfileName">
+        User
+      </strong>
+
+      <span id="sidebarProfileUsername">
+        Telegram
+      </span>
+
+    </div>
+
+
+    <span
+      class="sidebar-profile-more"
+      aria-hidden="true"
+    >
+      ⋯
+    </span>
+
+  </button>
+
+</div>
+    
   </aside>
 
 
@@ -476,6 +518,109 @@
 
   </div>
 
+<div
+  id="profileModal"
+  class="modal hidden"
+  role="dialog"
+  aria-modal="true"
+  aria-labelledby="profileModalTitle"
+>
+
+  <div class="modal-card profile-modal-card">
+
+    <div class="modal-header">
+
+      <h2 id="profileModalTitle">
+        Edit profile
+      </h2>
+
+      <button
+        id="closeProfileBtn"
+        class="icon-button"
+        type="button"
+        aria-label="Close profile"
+      >
+        ✕
+      </button>
+
+    </div>
+
+
+    <div class="profile-editor-avatar-row">
+
+      <div
+        id="profileEditorAvatar"
+        class="profile-avatar profile-avatar-large"
+        aria-hidden="true"
+      >
+        U
+      </div>
+
+      <div class="profile-editor-avatar-text">
+
+        <strong>
+          Profile picture
+        </strong>
+
+        <span>
+          Custom photo is coming next.
+        </span>
+
+      </div>
+
+    </div>
+
+
+    <label for="profileDisplayNameInput">
+      Display name
+    </label>
+
+    <input
+      id="profileDisplayNameInput"
+      type="text"
+      maxlength="50"
+      autocomplete="name"
+      placeholder="Your display name"
+    >
+
+
+    <div class="profile-telegram-info">
+
+      <span>
+        Telegram account
+      </span>
+
+      <strong id="profileTelegramUsername">
+        —
+      </strong>
+
+    </div>
+
+
+    <div class="profile-actions">
+
+      <button
+        id="cancelProfileBtn"
+        class="secondary-button"
+        type="button"
+      >
+        Cancel
+      </button>
+
+      <button
+        id="saveProfileBtn"
+        class="primary-confirm-button"
+        type="button"
+      >
+        Save
+      </button>
+
+    </div>
+
+  </div>
+
+</div>
+  
 <div
   id="renameChatModal"
   class="modal hidden"
