@@ -1000,11 +1000,8 @@ padding:
   gap: 8px;
 }
 
-
 .topbar-title {
-  min-width: 0;
-
-  padding: 0;
+  display: none;
 }
 
 
@@ -1516,30 +1513,14 @@ border:
   }
 
 .menu-button {
+  display: none;
+}
+
+
+.desktop-sidebar-toggle {
   display: grid;
-}
 
-
-.app.sidebar-collapsed
-.menu-button {
-  position: fixed;
-
-  top: 12px;
-  left: 12px;
-
-  z-index: 1600;
-
-  width: 34px;
-  height: 34px;
-
-  margin: 0;
-
-  background:
-    transparent;
-}
-.app.sidebar-collapsed
-.topbar {
-  z-index: 1601;
+  flex: 0 0 34px;
 }
 
   .topbar {
@@ -1591,6 +1572,12 @@ border:
 
   padding-left: 0;
   padding-right: 0;
+}
+
+
+.app.sidebar-collapsed
+.sidebar-brand {
+  display: none;
 }
 
   .app.sidebar-collapsed
