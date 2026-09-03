@@ -361,11 +361,7 @@ function setSelectedModel(model) {
   }
 }
 
-const PROFILE_NAME_STORAGE_KEY =
-  "globalblamp_profile_display_name";
-const PROFILE_PHOTO_STORAGE_KEY =
-  "globalblamp_profile_photo";
-
+let currentProfile = null;
 
 let pendingProfilePhoto = null;
 
@@ -423,11 +419,10 @@ function getTelegramDefaultName(user) {
 
 function getProfileDisplayName() {
   const customName =
-    localStorage
-      .getItem(
-        PROFILE_NAME_STORAGE_KEY
-      )
-      ?.trim() || "";
+    typeof currentProfile?.display_name ===
+      "string"
+      ? currentProfile.display_name.trim()
+      : "";
 
 
   if (customName) {
@@ -486,9 +481,10 @@ function makeProfileInitials(name) {
 
 function getProfilePhoto() {
   return (
-    localStorage.getItem(
-      PROFILE_PHOTO_STORAGE_KEY
-    ) || ""
+    typeof currentProfile?.avatar_data ===
+      "string"
+      ? currentProfile.avatar_data
+      : ""
   );
 }
 
@@ -664,6 +660,70 @@ function resizeProfilePhoto(file) {
       );
     }
   );
+}
+
+async function loadServerProfile() {
+  try {
+    const response =
+      await fetch(
+        "/api/profile/get",
+        {
+          method: "GET"
+        }
+      );
+
+
+    let data = null;
+
+
+    try {
+      data =
+        await response.json();
+
+    } catch {
+      data = null;
+    }
+
+
+    if (!response.ok) {
+      if (response.status === 401) {
+        currentProfile = null;
+        renderProfile();
+
+        return null;
+      }
+
+
+      throw new Error(
+        data?.error ||
+          "Could not load profile"
+      );
+    }
+
+
+    currentProfile =
+      data?.profile || null;
+
+
+    renderProfile();
+
+
+    return currentProfile;
+
+  } catch (error) {
+    console.error(
+      "Could not load profile:",
+      error
+    );
+
+
+    currentProfile = null;
+
+    renderProfile();
+
+
+    return null;
+  }
 }
 
 function renderProfile() {
@@ -872,7 +932,8 @@ localStorage.setItem(
   "globalblamp_telegram_user",
   JSON.stringify(data.user)
 );
-renderProfile();
+
+await loadServerProfile();
 
 setLoginMessage(
   "Telegram login successful.",
@@ -1255,10 +1316,13 @@ async function logout() {
     "globalblamp_telegram_user"
   );
 
-  localStorage.removeItem(
-    "globalblamp_unlicensed_login_at"
-  );
+localStorage.removeItem(
+  "globalblamp_unlicensed_login_at"
+);
 
+
+currentProfile = null;
+pendingProfilePhoto = null;
 
 hasActiveApi = false;
 
@@ -3894,7 +3958,7 @@ removeProfilePhotoBtn.addEventListener(
 
 saveProfileBtn.addEventListener(
   "click",
-  () => {
+  async () => {
     const displayName =
       profileDisplayNameInput.value
         .replace(/\s+/g, " ")
@@ -3914,34 +3978,110 @@ saveProfileBtn.addEventListener(
     }
 
 
-    localStorage.setItem(
-      PROFILE_NAME_STORAGE_KEY,
-      displayName
-    );
+    saveProfileBtn.disabled = true;
+
+    saveProfileBtn.textContent =
+      "Saving...";
 
 
-    if (pendingProfilePhoto) {
-      localStorage.setItem(
-        PROFILE_PHOTO_STORAGE_KEY,
-        pendingProfilePhoto
-      );
+    try {
+      const response =
+        await fetch(
+          "/api/profile/save",
+          {
+            method: "POST",
 
-    } else {
+            headers: {
+              "Content-Type":
+                "application/json"
+            },
+
+            body:
+              JSON.stringify({
+                display_name:
+                  displayName,
+
+                avatar_data:
+                  pendingProfilePhoto || ""
+              })
+          }
+        );
+
+
+      let data = null;
+
+
+      try {
+        data =
+          await response.json();
+
+      } catch {
+        data = null;
+      }
+
+
+      if (!response.ok) {
+        throw new Error(
+          data?.error ||
+            "Could not save profile"
+        );
+      }
+
+
+      currentProfile =
+        data?.profile || {
+          display_name:
+            displayName,
+
+          avatar_data:
+            pendingProfilePhoto || ""
+        };
+
+
+      /*
+        Remove the old browser-only
+        profile values from earlier builds.
+      */
+
       localStorage.removeItem(
-        PROFILE_PHOTO_STORAGE_KEY
+        "globalblamp_profile_display_name"
       );
+
+      localStorage.removeItem(
+        "globalblamp_profile_photo"
+      );
+
+
+      renderProfile();
+
+      closeProfileModal();
+
+
+      showToast(
+        "Profile updated.",
+        "success"
+      );
+
+    } catch (error) {
+      console.error(
+        "Could not save profile:",
+        error
+      );
+
+
+      showToast(
+        error.message ||
+          "Could not save profile.",
+        "error"
+      );
+
+    } finally {
+      saveProfileBtn.disabled =
+        false;
+
+      saveProfileBtn.textContent =
+        "Save";
     }
-
-
-    renderProfile();
-
-    closeProfileModal();
-
-
-    showToast(
-      "Profile updated.",
-      "success"
-    );
   }
 );
 
@@ -4267,7 +4407,7 @@ if (data.user) {
 }
 
 
-renderProfile();
+await loadServerProfile();
 
 
     hasActiveApi =
