@@ -68,18 +68,14 @@
 
     <div class="sidebar-header">
 
-      <div class="sidebar-brand">
+<div class="sidebar-brand">
 
-        <div class="sidebar-logo">
-          G
-        </div>
+  <div class="sidebar-brand-text">
+    <strong>GlobalBLAMP</strong>
+    <span>AI</span>
+  </div>
 
-        <div class="sidebar-brand-text">
-          <strong>GlobalBLAMP</strong>
-          <span>AI</span>
-        </div>
-
-      </div>
+</div>
 
 
       <button
@@ -195,6 +191,45 @@
     ⚙
   </button>
 
+<div class="chat-menu-wrap">
+
+  <button
+    id="chatMenuBtn"
+    class="icon-button chat-menu-button"
+    type="button"
+    aria-label="Conversation options"
+    aria-expanded="false"
+  >
+    ⋯
+  </button>
+
+
+  <div
+    id="chatMenu"
+    class="chat-menu hidden"
+  >
+
+    <button
+      id="renameChatBtn"
+      class="chat-menu-item"
+      type="button"
+    >
+      Rename chat
+    </button>
+
+
+    <button
+      id="deleteCurrentChatBtn"
+      class="chat-menu-item danger"
+      type="button"
+    >
+      Delete chat
+    </button>
+
+  </div>
+
+</div>
+  
 </div>
 
     </header>
@@ -206,26 +241,22 @@
   tabindex="-1"
 >
 
-      <div class="welcome-message">
+<div class="welcome-message">
 
-        <div class="welcome-mark">
-          G
-        </div>
+  <h2>
+    How can I help?
+  </h2>
 
-        <h2>
-          How can I help?
-        </h2>
+  <p>
+    Start a conversation with GlobalBLAMP AI.
+  </p>
 
-        <p>
-          Start a conversation with GlobalBLAMP AI.
-        </p>
+</div>
 
-      </div>
-
-    </main>
+</main>
 
 
-    <div class="composer-area">
+<div class="composer-area">
 <button
   id="scrollToLatestBtn"
   class="scroll-to-latest hidden"
@@ -445,6 +476,70 @@
 
   </div>
 
+<div
+  id="renameChatModal"
+  class="modal hidden"
+  role="dialog"
+  aria-modal="true"
+  aria-labelledby="renameChatTitle"
+>
+
+  <div class="modal-card rename-chat-card">
+
+    <div class="modal-header">
+
+      <h2 id="renameChatTitle">
+        Rename chat
+      </h2>
+
+      <button
+        id="closeRenameChatBtn"
+        class="icon-button"
+        type="button"
+        aria-label="Close rename chat"
+      >
+        ✕
+      </button>
+
+    </div>
+
+
+    <label for="renameChatInput">
+      Chat name
+    </label>
+
+    <input
+      id="renameChatInput"
+      type="text"
+      maxlength="60"
+      autocomplete="off"
+    >
+
+
+    <div class="rename-chat-actions">
+
+      <button
+        id="cancelRenameChatBtn"
+        class="secondary-button"
+        type="button"
+      >
+        Cancel
+      </button>
+
+      <button
+        id="saveRenameChatBtn"
+        class="primary-confirm-button"
+        type="button"
+      >
+        Save
+      </button>
+
+    </div>
+
+  </div>
+
+</div>
+  
 <div
   id="confirmModal"
   class="modal hidden"
