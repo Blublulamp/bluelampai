@@ -199,6 +199,21 @@ const profileTelegramUsername =
     "profileTelegramUsername"
   );
 
+const changeProfilePhotoBtn =
+  document.getElementById(
+    "changeProfilePhotoBtn"
+  );
+
+const removeProfilePhotoBtn =
+  document.getElementById(
+    "removeProfilePhotoBtn"
+  );
+
+const profilePhotoInput =
+  document.getElementById(
+    "profilePhotoInput"
+  );
+
 const chatArea = document.getElementById("chatArea");
 const messageInput = document.getElementById("messageInput");
 const sendBtn = document.getElementById("sendBtn");
@@ -348,7 +363,11 @@ function setSelectedModel(model) {
 
 const PROFILE_NAME_STORAGE_KEY =
   "globalblamp_profile_display_name";
+const PROFILE_PHOTO_STORAGE_KEY =
+  "globalblamp_profile_photo";
 
+
+let pendingProfilePhoto = null;
 
 function getCachedTelegramUser() {
   try {
@@ -465,6 +484,187 @@ function makeProfileInitials(name) {
   ).toUpperCase();
 }
 
+function getProfilePhoto() {
+  return (
+    localStorage.getItem(
+      PROFILE_PHOTO_STORAGE_KEY
+    ) || ""
+  );
+}
+
+
+function applyProfileAvatar(
+  element,
+  photo,
+  initials
+) {
+  if (!element) {
+    return;
+  }
+
+
+  if (photo) {
+    element.style.backgroundImage =
+      `url("${photo}")`;
+
+    element.classList.add(
+      "has-photo"
+    );
+
+    element.textContent = "";
+
+    return;
+  }
+
+
+  element.style.backgroundImage =
+    "";
+
+  element.classList.remove(
+    "has-photo"
+  );
+
+  element.textContent =
+    initials;
+}
+
+
+function renderProfileEditorPhoto(
+  photo
+) {
+  const initials =
+    makeProfileInitials(
+      getProfileDisplayName()
+    );
+
+
+  applyProfileAvatar(
+    profileEditorAvatar,
+    photo,
+    initials
+  );
+
+
+  removeProfilePhotoBtn.disabled =
+    !photo;
+}
+
+
+function resizeProfilePhoto(file) {
+  return new Promise(
+    (resolve, reject) => {
+
+      const reader =
+        new FileReader();
+
+
+      reader.onerror =
+        () => {
+          reject(
+            new Error(
+              "Could not read this image."
+            )
+          );
+        };
+
+
+      reader.onload =
+        () => {
+          const image =
+            new Image();
+
+
+          image.onerror =
+            () => {
+              reject(
+                new Error(
+                  "This image could not be opened."
+                )
+              );
+            };
+
+
+          image.onload =
+            () => {
+              const size = 256;
+
+              const canvas =
+                document.createElement(
+                  "canvas"
+                );
+
+              canvas.width = size;
+              canvas.height = size;
+
+
+              const context =
+                canvas.getContext("2d");
+
+
+              if (!context) {
+                reject(
+                  new Error(
+                    "Could not prepare profile photo."
+                  )
+                );
+
+                return;
+              }
+
+
+              const sourceSize =
+                Math.min(
+                  image.width,
+                  image.height
+                );
+
+
+              const sourceX =
+                (
+                  image.width -
+                  sourceSize
+                ) / 2;
+
+              const sourceY =
+                (
+                  image.height -
+                  sourceSize
+                ) / 2;
+
+
+              context.drawImage(
+                image,
+                sourceX,
+                sourceY,
+                sourceSize,
+                sourceSize,
+                0,
+                0,
+                size,
+                size
+              );
+
+
+              resolve(
+                canvas.toDataURL(
+                  "image/jpeg",
+                  0.86
+                )
+              );
+            };
+
+
+          image.src =
+            reader.result;
+        };
+
+
+      reader.readAsDataURL(
+        file
+      );
+    }
+  );
+}
 
 function renderProfile() {
   const displayName =
@@ -478,6 +678,9 @@ function renderProfile() {
       displayName
     );
 
+  const photo =
+    getProfilePhoto();
+
 
   sidebarProfileName.textContent =
     displayName;
@@ -485,16 +688,23 @@ function renderProfile() {
   sidebarProfileUsername.textContent =
     username;
 
-  sidebarProfileAvatar.textContent =
-    initials;
-
-  profileEditorAvatar.textContent =
-    initials;
-
   profileTelegramUsername.textContent =
     username;
-}
 
+
+  applyProfileAvatar(
+    sidebarProfileAvatar,
+    photo,
+    initials
+  );
+
+
+  applyProfileAvatar(
+    profileEditorAvatar,
+    photo,
+    initials
+  );
+}
 
 function openProfileModal() {
   renderProfile();
@@ -502,6 +712,18 @@ function openProfileModal() {
 
   profileDisplayNameInput.value =
     getProfileDisplayName();
+
+
+  pendingProfilePhoto =
+    getProfilePhoto();
+
+
+  renderProfileEditorPhoto(
+    pendingProfilePhoto
+  );
+
+
+  profilePhotoInput.value = "";
 
 
   profileModal.classList.remove(
@@ -3567,6 +3789,108 @@ profileModal.addEventListener(
   }
 );
 
+changeProfilePhotoBtn.addEventListener(
+  "click",
+  () => {
+    profilePhotoInput.click();
+  }
+);
+
+
+profilePhotoInput.addEventListener(
+  "change",
+  async () => {
+    const file =
+      profilePhotoInput.files?.[0];
+
+
+    if (!file) {
+      return;
+    }
+
+
+    const allowedTypes =
+      [
+        "image/jpeg",
+        "image/png",
+        "image/webp"
+      ];
+
+
+    if (
+      !allowedTypes.includes(
+        file.type
+      )
+    ) {
+      showToast(
+        "Use a JPG, PNG, or WebP image.",
+        "error"
+      );
+
+      profilePhotoInput.value = "";
+
+      return;
+    }
+
+
+    if (
+      file.size >
+      10 * 1024 * 1024
+    ) {
+      showToast(
+        "Profile photo must be under 10 MB.",
+        "error"
+      );
+
+      profilePhotoInput.value = "";
+
+      return;
+    }
+
+
+    try {
+      pendingProfilePhoto =
+        await resizeProfilePhoto(
+          file
+        );
+
+
+      renderProfileEditorPhoto(
+        pendingProfilePhoto
+      );
+
+
+    } catch (error) {
+      console.error(
+        "Could not prepare profile photo:",
+        error
+      );
+
+
+      showToast(
+        error.message ||
+          "Could not use this image.",
+        "error"
+      );
+    }
+
+
+    profilePhotoInput.value = "";
+  }
+);
+
+
+removeProfilePhotoBtn.addEventListener(
+  "click",
+  () => {
+    pendingProfilePhoto = "";
+
+
+    renderProfileEditorPhoto(
+      ""
+    );
+  }
+);
 
 saveProfileBtn.addEventListener(
   "click",
@@ -3594,6 +3918,19 @@ saveProfileBtn.addEventListener(
       PROFILE_NAME_STORAGE_KEY,
       displayName
     );
+
+
+    if (pendingProfilePhoto) {
+      localStorage.setItem(
+        PROFILE_PHOTO_STORAGE_KEY,
+        pendingProfilePhoto
+      );
+
+    } else {
+      localStorage.removeItem(
+        PROFILE_PHOTO_STORAGE_KEY
+      );
+    }
 
 
     renderProfile();
