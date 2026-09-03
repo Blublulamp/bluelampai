@@ -3835,10 +3835,10 @@ profilePhotoInput.addEventListener(
 
     if (
       file.size >
-      10 * 1024 * 1024
+      5 * 1024 * 1024
     ) {
       showToast(
-        "Profile photo must be under 10 MB.",
+        "Profile photo must be under 5 MB.",
         "error"
       );
 
