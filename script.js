@@ -705,11 +705,21 @@ async function logout() {
   );
 
 
-  hasActiveApi = false;
+hasActiveApi = false;
 
-  apiKeyInput.value = "";
+apiKeyInput.value = "";
 
-  resetToNewChat();
+
+clearMessageDraft();
+
+messageInput.value = "";
+
+resizeTextarea();
+
+updateSendButtonState();
+
+
+resetToNewChat();
 
   closeSettings();
   closeHistory();
@@ -719,8 +729,14 @@ async function logout() {
   setLoginMessage("");
 }
 async function saveSettings() {
-  const apiKey = apiKeyInput.value.trim();
-  const model = modelSelect.value;
+  await settleActiveSendBeforeNavigation();
+
+
+  const apiKey =
+    apiKeyInput.value.trim();
+
+  const model =
+    modelSelect.value;
   
 /*
   If no API is connected yet,
@@ -1733,10 +1749,21 @@ if (!confirmed) {
   return;
 }
 
-    deleteBtn.disabled = true;
 
-    try {
-      await deleteCloudChat(chat.id);
+deleteBtn.disabled = true;
+
+
+try {
+  if (
+    currentChatId === chat.id
+  ) {
+    await settleActiveSendBeforeNavigation();
+  }
+
+
+  await deleteCloudChat(
+    chat.id
+  );
 
 if (currentChatId === chat.id) {
   resetToNewChat();
