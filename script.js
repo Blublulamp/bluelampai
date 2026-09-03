@@ -1919,7 +1919,8 @@ function setLoading(isLoading) {
   } else {
     sendBtn.disabled = false;
 
-    sendBtn.textContent = "↑";
+sendBtn.innerHTML =
+  '<span class="send-arrow"></span>';
 
     sendBtn.classList.remove(
       "stop-mode"
