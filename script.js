@@ -76,6 +76,11 @@ const themeToggleBtn =
 const historyBtn =
   document.getElementById("historyBtn");
 
+const desktopHistoryBtn =
+  document.getElementById(
+    "desktopHistoryBtn"
+  );
+
 const historyBackdrop =
   document.getElementById("historyBackdrop");
 
@@ -3388,6 +3393,23 @@ chatSearchInput.addEventListener(
 );
 
 historyBtn.addEventListener(
+  "click",
+  async () => {
+    toggleHistory();
+
+    try {
+      await loadChats();
+
+    } catch (error) {
+      console.error(
+        "Could not load chats:",
+        error
+      );
+    }
+  }
+);
+
+desktopHistoryBtn.addEventListener(
   "click",
   async () => {
     toggleHistory();
