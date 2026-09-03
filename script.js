@@ -1902,16 +1902,29 @@ headers: {
   return true;
 }
 
+function updateSendButtonState() {
+  if (isGenerating) {
+    sendBtn.disabled = false;
+    return;
+  }
+
+
+  sendBtn.disabled =
+    sendInFlight ||
+    !messageInput.value.trim();
+}
+
+
+
 function setLoading(isLoading) {
   isGenerating = isLoading;
+
 
   messageInput.disabled =
     isLoading;
 
 
   if (isLoading) {
-    sendBtn.disabled = false;
-
     sendBtn.textContent = "■";
 
     sendBtn.classList.add(
@@ -1924,10 +1937,8 @@ function setLoading(isLoading) {
     );
 
   } else {
-    sendBtn.disabled = false;
-
-sendBtn.innerHTML =
-  '<span class="send-arrow"></span>';
+    sendBtn.innerHTML =
+      '<span class="send-arrow"></span>';
 
     sendBtn.classList.remove(
       "stop-mode"
@@ -1938,6 +1949,9 @@ sendBtn.innerHTML =
       "Send message"
     );
   }
+
+
+  updateSendButtonState();
 }
 
 
@@ -1986,7 +2000,7 @@ async function sendMessage() {
   }
 
 
-  sendInFlight = true;
+sendInFlight = true;
 
 messageInput.value = "";
 
@@ -1994,6 +2008,8 @@ messageInput.style.height =
   "auto";
 
 resizeTextarea();
+
+updateSendButtonState();
 
 
 try {
@@ -2003,6 +2019,8 @@ try {
 
 } catch (error) {
   sendInFlight = false;
+
+  updateSendButtonState();
 
 
   showToast(
@@ -2328,11 +2346,13 @@ renderMessageContent(
 
   activeChatController = null;
 
-  setLoading(false);
+setLoading(false);
 
-  sendInFlight = false;
+sendInFlight = false;
 
-  messageInput.focus();
+updateSendButtonState();
+
+messageInput.focus();
 
 
   if (isNearChatBottom()) {
@@ -2628,7 +2648,10 @@ sendBtn.addEventListener(
 
 messageInput.addEventListener(
   "input",
-  resizeTextarea
+  () => {
+    resizeTextarea();
+    updateSendButtonState();
+  }
 );
 
 chatArea.addEventListener(
@@ -2731,6 +2754,8 @@ async function startApp() {
   loadTheme();
 
   loadSettings();
+
+  updateSendButtonState();
 
 
   /*
