@@ -3079,3 +3079,74 @@ body.light-theme
 .primary-confirm-button {
   min-width: 86px;
 }
+/* =========================================
+   REDESIGN V11
+   PROFILE PHOTO
+========================================= */
+
+.profile-avatar {
+  overflow: hidden;
+
+  background-position: center;
+  background-repeat: no-repeat;
+  background-size: cover;
+}
+
+
+.profile-avatar.has-photo {
+  color: transparent;
+}
+
+
+.profile-photo-actions {
+  margin-top: 7px;
+
+  display: flex;
+  align-items: center;
+
+  gap: 6px;
+}
+
+
+.profile-photo-button {
+  min-height: 30px;
+
+  padding:
+    5px
+    9px;
+
+  border-radius: 7px;
+
+  background:
+    var(--surface);
+
+  color:
+    var(--text-secondary);
+
+  font-size: 11px;
+}
+
+
+.profile-photo-button:hover {
+  background:
+    var(--surface-hover);
+
+  color:
+    var(--text);
+}
+
+
+.profile-photo-button.danger {
+  color: #ff9c9c;
+}
+
+
+.profile-photo-button.danger:hover {
+  background: #302020;
+}
+
+
+body.light-theme
+.profile-photo-button.danger:hover {
+  background: #fff0f0;
+}
