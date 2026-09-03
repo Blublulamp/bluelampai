@@ -97,6 +97,52 @@ const chatList =
 const currentChatTitle =
   document.getElementById("currentChatTitle");
 
+const chatMenuBtn =
+  document.getElementById(
+    "chatMenuBtn"
+  );
+
+const chatMenu =
+  document.getElementById(
+    "chatMenu"
+  );
+
+const renameChatBtn =
+  document.getElementById(
+    "renameChatBtn"
+  );
+
+const deleteCurrentChatBtn =
+  document.getElementById(
+    "deleteCurrentChatBtn"
+  );
+
+
+const renameChatModal =
+  document.getElementById(
+    "renameChatModal"
+  );
+
+const renameChatInput =
+  document.getElementById(
+    "renameChatInput"
+  );
+
+const saveRenameChatBtn =
+  document.getElementById(
+    "saveRenameChatBtn"
+  );
+
+const cancelRenameChatBtn =
+  document.getElementById(
+    "cancelRenameChatBtn"
+  );
+
+const closeRenameChatBtn =
+  document.getElementById(
+    "closeRenameChatBtn"
+  );
+
 const chatArea = document.getElementById("chatArea");
 const messageInput = document.getElementById("messageInput");
 const sendBtn = document.getElementById("sendBtn");
@@ -256,10 +302,6 @@ function resetToNewChat() {
 
   chatArea.innerHTML = `
     <div class="welcome-message">
-
-      <div class="welcome-mark">
-        G
-      </div>
 
       <h2>
         How can I help?
@@ -472,15 +514,75 @@ headerModelSelect.value =
   currentModel;
 }
 
+function isDesktopLayout() {
+  return window.matchMedia(
+    "(min-width: 900px)"
+  ).matches;
+}
+
+
 function openHistory() {
-  historyBackdrop.classList.remove("hidden");
-  historyPanel.classList.remove("hidden");
+  if (isDesktopLayout()) {
+    chatApp.classList.remove(
+      "sidebar-collapsed"
+    );
+
+    return;
+  }
+
+
+  historyBackdrop.classList.remove(
+    "hidden"
+  );
+
+  historyPanel.classList.remove(
+    "hidden"
+  );
 }
 
 
 function closeHistory() {
-  historyBackdrop.classList.add("hidden");
-  historyPanel.classList.add("hidden");
+  if (isDesktopLayout()) {
+    chatApp.classList.add(
+      "sidebar-collapsed"
+    );
+
+    return;
+  }
+
+
+  historyBackdrop.classList.add(
+    "hidden"
+  );
+
+  historyPanel.classList.add(
+    "hidden"
+  );
+}
+
+
+function toggleHistory() {
+  if (isDesktopLayout()) {
+    chatApp.classList.toggle(
+      "sidebar-collapsed"
+    );
+
+    return;
+  }
+
+
+  const isOpen =
+    !historyPanel.classList.contains(
+      "hidden"
+    );
+
+
+  if (isOpen) {
+    closeHistory();
+
+  } else {
+    openHistory();
+  }
 }
 
 let toastTimer = null;
@@ -1900,10 +2002,6 @@ if (!messages.length) {
   chatArea.innerHTML = `
     <div class="welcome-message">
 
-      <div class="welcome-mark">
-        G
-      </div>
-
       <h2>
         ${escapeHtml(
           chat.title || "New Chat"
@@ -2722,7 +2820,7 @@ chatSearchInput.addEventListener(
 historyBtn.addEventListener(
   "click",
   async () => {
-    openHistory();
+    toggleHistory();
 
     try {
       await loadChats();
@@ -2786,6 +2884,157 @@ headerModelSelect.addEventListener(
     messageInput.focus();
   }
 );
+
+function closeChatMenu() {
+  chatMenu.classList.add(
+    "hidden"
+  );
+
+  chatMenuBtn.setAttribute(
+    "aria-expanded",
+    "false"
+  );
+}
+
+
+function toggleChatMenu() {
+  const isOpen =
+    !chatMenu.classList.contains(
+      "hidden"
+    );
+
+
+  if (isOpen) {
+    closeChatMenu();
+
+    return;
+  }
+
+
+  chatMenu.classList.remove(
+    "hidden"
+  );
+
+  chatMenuBtn.setAttribute(
+    "aria-expanded",
+    "true"
+  );
+}
+
+
+function openRenameChatModal() {
+  closeChatMenu();
+
+
+  if (!currentChatId) {
+    showToast(
+      "Start a conversation first.",
+      "error"
+    );
+
+    return;
+  }
+
+
+  renameChatInput.value =
+    currentChatTitle.textContent.trim();
+
+
+  renameChatModal.classList.remove(
+    "hidden"
+  );
+
+
+  renameChatInput.focus();
+  renameChatInput.select();
+}
+
+
+function closeRenameChatModal() {
+  renameChatModal.classList.add(
+    "hidden"
+  );
+
+  renameChatInput.value = "";
+}
+
+async function deleteCurrentChat() {
+  closeChatMenu();
+
+
+  if (!currentChatId) {
+    showToast(
+      "There is no conversation to delete.",
+      "error"
+    );
+
+    return;
+  }
+
+
+  const chatId =
+    currentChatId;
+
+  const chatTitle =
+    currentChatTitle.textContent.trim() ||
+    "New Chat";
+
+
+  const confirmed =
+    await askConfirmation({
+      title:
+        "Delete conversation?",
+
+      message:
+        `Delete "${chatTitle}"? This cannot be undone.`,
+
+      confirmText:
+        "Delete",
+
+      danger: true
+    });
+
+
+  if (!confirmed) {
+    return;
+  }
+
+
+  try {
+    await settleActiveSendBeforeNavigation();
+
+
+    await deleteCloudChat(
+      chatId
+    );
+
+
+    resetToNewChat();
+
+
+    await loadChats();
+
+
+    showToast(
+      "Conversation deleted.",
+      "success"
+    );
+
+  } catch (error) {
+    console.error(
+      "Could not delete current chat:",
+      error
+    );
+
+
+    showToast(
+      error.message ||
+        "Could not delete chat.",
+      "error"
+    );
+  }
+}
+
 function applyTheme(theme) {
   const useLight =
     theme === "light";
@@ -2825,6 +3074,75 @@ function loadTheme() {
       : "dark"
   );
 }
+
+chatMenuBtn.addEventListener(
+  "click",
+  (event) => {
+    event.stopPropagation();
+
+    toggleChatMenu();
+  }
+);
+
+
+renameChatBtn.addEventListener(
+  "click",
+  openRenameChatModal
+);
+
+
+deleteCurrentChatBtn.addEventListener(
+  "click",
+  deleteCurrentChat
+);
+
+
+cancelRenameChatBtn.addEventListener(
+  "click",
+  closeRenameChatModal
+);
+
+
+closeRenameChatBtn.addEventListener(
+  "click",
+  closeRenameChatModal
+);
+
+saveRenameChatBtn.addEventListener(
+  "click",
+  () => {
+    showToast(
+      "Rename backend connection is the next step.",
+      "error"
+    );
+  }
+);
+
+renameChatModal.addEventListener(
+  "click",
+  (event) => {
+    if (
+      event.target ===
+      renameChatModal
+    ) {
+      closeRenameChatModal();
+    }
+  }
+);
+
+
+document.addEventListener(
+  "click",
+  (event) => {
+    if (
+      !event.target.closest(
+        ".chat-menu-wrap"
+      )
+    ) {
+      closeChatMenu();
+    }
+  }
+);
 
 
 themeToggleBtn.addEventListener(
