@@ -546,29 +546,59 @@
     </div>
 
 
-    <div class="profile-editor-avatar-row">
+<div class="profile-editor-avatar-row">
 
-      <div
-        id="profileEditorAvatar"
-        class="profile-avatar profile-avatar-large"
-        aria-hidden="true"
+  <div
+    id="profileEditorAvatar"
+    class="profile-avatar profile-avatar-large"
+    aria-hidden="true"
+  >
+    U
+  </div>
+
+
+  <div class="profile-editor-avatar-text">
+
+    <strong>
+      Profile picture
+    </strong>
+
+    <span>
+      Upload your own profile photo.
+    </span>
+
+
+    <div class="profile-photo-actions">
+
+      <button
+        id="changeProfilePhotoBtn"
+        class="profile-photo-button"
+        type="button"
       >
-        U
-      </div>
+        Change photo
+      </button>
 
-      <div class="profile-editor-avatar-text">
-
-        <strong>
-          Profile picture
-        </strong>
-
-        <span>
-          Custom photo is coming next.
-        </span>
-
-      </div>
+      <button
+        id="removeProfilePhotoBtn"
+        class="profile-photo-button danger"
+        type="button"
+      >
+        Remove
+      </button>
 
     </div>
+
+
+    <input
+      id="profilePhotoInput"
+      class="hidden"
+      type="file"
+      accept="image/jpeg,image/png,image/webp"
+    >
+
+  </div>
+
+</div>
 
 
     <label for="profileDisplayNameInput">
