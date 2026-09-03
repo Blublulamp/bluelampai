@@ -1537,7 +1537,10 @@ border:
   background:
     transparent;
 }
-
+.app.sidebar-collapsed
+.topbar {
+  z-index: 1601;
+}
 
   .topbar {
     padding-left: 24px;
