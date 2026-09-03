@@ -577,14 +577,6 @@ button {
 .hidden {
   display: none !important;
 }
-
-.chat-delete-button:active {
-  transform: scale(0.97);
-}
-
-.hidden {
-  display: none !important;
-}
 /* =========================================
    GLOBALBLAMP REDESIGN V1
    APP SHELL
@@ -1958,6 +1950,8 @@ body.light-theme
 
 
 .message.assistant:hover
+.message-actions,
+.message.assistant:focus-within
 .message-actions {
   opacity: 1;
 }
@@ -2417,4 +2411,220 @@ body.light-theme
 .app-toast.success {
   background: #edf9f0;
   color: #246337;
+}
+/* =========================================
+   REDESIGN V8
+   ACCESSIBILITY + QUALITY
+========================================= */
+
+
+/* =========================================
+   SKIP LINK
+========================================= */
+
+.skip-link {
+  position: fixed;
+
+  top: 10px;
+  left: 10px;
+
+  z-index: 5000;
+
+  padding:
+    9px
+    12px;
+
+  transform:
+    translateY(-150%);
+
+  border-radius: 8px;
+
+  background:
+    var(--text);
+
+  color:
+    var(--bg);
+
+  font-size: 13px;
+  font-weight: 600;
+}
+
+
+.skip-link:focus {
+  transform:
+    translateY(0);
+}
+
+
+/* =========================================
+   KEYBOARD FOCUS
+========================================= */
+
+button:focus-visible,
+input:focus-visible,
+textarea:focus-visible,
+select:focus-visible,
+a:focus-visible {
+  outline:
+    2px solid
+    var(--text);
+
+  outline-offset:
+    2px;
+}
+
+
+.chat-list-item:focus-visible,
+.new-chat-button:focus-visible,
+.icon-button:focus-visible,
+.message-action-button:focus-visible,
+.copy-code-button:focus-visible,
+.password-toggle:focus-visible,
+.scroll-to-latest:focus-visible {
+  outline-offset:
+    2px;
+}
+
+
+#chatArea:focus {
+  outline: none;
+}
+
+
+/* =========================================
+   REDUCED MOTION
+========================================= */
+
+@media (
+  prefers-reduced-motion:
+  reduce
+) {
+
+  *,
+  *::before,
+  *::after {
+    scroll-behavior:
+      auto !important;
+
+    transition-duration:
+      0.01ms !important;
+
+    animation-duration:
+      0.01ms !important;
+
+    animation-iteration-count:
+      1 !important;
+  }
+
+}
+
+
+/* =========================================
+   PRINT
+========================================= */
+
+@media print {
+
+  body {
+    overflow:
+      visible;
+
+    background:
+      #ffffff;
+
+    color:
+      #000000;
+  }
+
+
+  .history-panel,
+  .history-backdrop,
+  .topbar,
+  .composer-area,
+  .modal,
+  .app-toast,
+  .skip-link,
+  .message-actions {
+    display:
+      none !important;
+  }
+
+
+  .app,
+  .chat-shell {
+    display:
+      block;
+
+    height:
+      auto;
+
+    overflow:
+      visible;
+
+    background:
+      #ffffff;
+  }
+
+
+  .chat-area {
+    display:
+      block;
+
+    height:
+      auto;
+
+    overflow:
+      visible;
+
+    padding:
+      0;
+  }
+
+
+  .message {
+    max-width:
+      none;
+
+    break-inside:
+      avoid;
+
+    color:
+      #000000;
+  }
+
+
+  .message-bubble,
+  .message.assistant
+  .message-bubble {
+    color:
+      #000000;
+
+    background:
+      transparent;
+  }
+
+
+  .message.user
+  .message-bubble {
+    border:
+      1px solid
+      #cccccc;
+
+    background:
+      #f3f3f3;
+
+    color:
+      #000000;
+  }
+
+
+  .code-block {
+    border:
+      1px solid
+      #cccccc;
+
+    break-inside:
+      avoid;
+  }
+
 }
