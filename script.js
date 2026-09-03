@@ -82,9 +82,6 @@ const historyBackdrop =
 const historyPanel =
   document.getElementById("historyPanel");
 
-const closeHistoryBtn =
-  document.getElementById("closeHistoryBtn");
-
 const newChatBtn =
   document.getElementById("newChatBtn");
 const chatSearchInput =
@@ -3406,13 +3403,6 @@ historyBtn.addEventListener(
     }
   }
 );
-
-
-closeHistoryBtn.addEventListener(
-  "click",
-  closeHistory
-);
-
 
 historyBackdrop.addEventListener(
   "click",
