@@ -1919,7 +1919,7 @@ function setLoading(isLoading) {
   } else {
     sendBtn.disabled = false;
 
-    sendBtn.textContent = "➤";
+    sendBtn.textContent = "↑";
 
     sendBtn.classList.remove(
       "stop-mode"
