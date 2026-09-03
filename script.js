@@ -143,6 +143,62 @@ const closeRenameChatBtn =
     "closeRenameChatBtn"
   );
 
+const sidebarProfileBtn =
+  document.getElementById(
+    "sidebarProfileBtn"
+  );
+
+const sidebarProfileAvatar =
+  document.getElementById(
+    "sidebarProfileAvatar"
+  );
+
+const sidebarProfileName =
+  document.getElementById(
+    "sidebarProfileName"
+  );
+
+const sidebarProfileUsername =
+  document.getElementById(
+    "sidebarProfileUsername"
+  );
+
+
+const profileModal =
+  document.getElementById(
+    "profileModal"
+  );
+
+const closeProfileBtn =
+  document.getElementById(
+    "closeProfileBtn"
+  );
+
+const cancelProfileBtn =
+  document.getElementById(
+    "cancelProfileBtn"
+  );
+
+const saveProfileBtn =
+  document.getElementById(
+    "saveProfileBtn"
+  );
+
+const profileDisplayNameInput =
+  document.getElementById(
+    "profileDisplayNameInput"
+  );
+
+const profileEditorAvatar =
+  document.getElementById(
+    "profileEditorAvatar"
+  );
+
+const profileTelegramUsername =
+  document.getElementById(
+    "profileTelegramUsername"
+  );
+
 const chatArea = document.getElementById("chatArea");
 const messageInput = document.getElementById("messageInput");
 const sendBtn = document.getElementById("sendBtn");
@@ -289,6 +345,181 @@ function setSelectedModel(model) {
     resetToNewChat();
   }
 }
+
+const PROFILE_NAME_STORAGE_KEY =
+  "globalblamp_profile_display_name";
+
+
+function getCachedTelegramUser() {
+  try {
+    const raw =
+      localStorage.getItem(
+        "globalblamp_telegram_user"
+      );
+
+    return raw
+      ? JSON.parse(raw)
+      : null;
+
+  } catch {
+    return null;
+  }
+}
+
+
+function getTelegramDefaultName(user) {
+  const firstName =
+    typeof user?.first_name === "string"
+      ? user.first_name.trim()
+      : "";
+
+  const lastName =
+    typeof user?.last_name === "string"
+      ? user.last_name.trim()
+      : "";
+
+
+  const fullName =
+    `${firstName} ${lastName}`
+      .replace(/\s+/g, " ")
+      .trim();
+
+
+  if (fullName) {
+    return fullName;
+  }
+
+
+  if (
+    typeof user?.username === "string" &&
+    user.username.trim()
+  ) {
+    return user.username.trim();
+  }
+
+
+  return "User";
+}
+
+
+function getProfileDisplayName() {
+  const customName =
+    localStorage
+      .getItem(
+        PROFILE_NAME_STORAGE_KEY
+      )
+      ?.trim() || "";
+
+
+  if (customName) {
+    return customName;
+  }
+
+
+  return getTelegramDefaultName(
+    getCachedTelegramUser()
+  );
+}
+
+
+function getProfileUsername() {
+  const user =
+    getCachedTelegramUser();
+
+
+  if (
+    typeof user?.username === "string" &&
+    user.username.trim()
+  ) {
+    return `@${user.username.trim()}`;
+  }
+
+
+  return "Telegram account";
+}
+
+
+function makeProfileInitials(name) {
+  const words =
+    String(name || "")
+      .trim()
+      .split(/\s+/)
+      .filter(Boolean);
+
+
+  if (!words.length) {
+    return "U";
+  }
+
+
+  if (words.length === 1) {
+    return words[0]
+      .slice(0, 2)
+      .toUpperCase();
+  }
+
+
+  return (
+    words[0][0] +
+    words[words.length - 1][0]
+  ).toUpperCase();
+}
+
+
+function renderProfile() {
+  const displayName =
+    getProfileDisplayName();
+
+  const username =
+    getProfileUsername();
+
+  const initials =
+    makeProfileInitials(
+      displayName
+    );
+
+
+  sidebarProfileName.textContent =
+    displayName;
+
+  sidebarProfileUsername.textContent =
+    username;
+
+  sidebarProfileAvatar.textContent =
+    initials;
+
+  profileEditorAvatar.textContent =
+    initials;
+
+  profileTelegramUsername.textContent =
+    username;
+}
+
+
+function openProfileModal() {
+  renderProfile();
+
+
+  profileDisplayNameInput.value =
+    getProfileDisplayName();
+
+
+  profileModal.classList.remove(
+    "hidden"
+  );
+
+
+  profileDisplayNameInput.focus();
+  profileDisplayNameInput.select();
+}
+
+
+function closeProfileModal() {
+  profileModal.classList.add(
+    "hidden"
+  );
+}
+
 function setCurrentChatTitle(title) {
   currentChatTitle.textContent =
     title || "New Chat";
@@ -419,7 +650,7 @@ localStorage.setItem(
   "globalblamp_telegram_user",
   JSON.stringify(data.user)
 );
-
+renderProfile();
 
 setLoginMessage(
   "Telegram login successful.",
@@ -3306,6 +3537,76 @@ document.addEventListener(
   }
 );
 
+sidebarProfileBtn.addEventListener(
+  "click",
+  openProfileModal
+);
+
+
+closeProfileBtn.addEventListener(
+  "click",
+  closeProfileModal
+);
+
+
+cancelProfileBtn.addEventListener(
+  "click",
+  closeProfileModal
+);
+
+
+profileModal.addEventListener(
+  "click",
+  (event) => {
+    if (
+      event.target ===
+      profileModal
+    ) {
+      closeProfileModal();
+    }
+  }
+);
+
+
+saveProfileBtn.addEventListener(
+  "click",
+  () => {
+    const displayName =
+      profileDisplayNameInput.value
+        .replace(/\s+/g, " ")
+        .trim()
+        .slice(0, 50);
+
+
+    if (!displayName) {
+      showToast(
+        "Enter a display name.",
+        "error"
+      );
+
+      profileDisplayNameInput.focus();
+
+      return;
+    }
+
+
+    localStorage.setItem(
+      PROFILE_NAME_STORAGE_KEY,
+      displayName
+    );
+
+
+    renderProfile();
+
+    closeProfileModal();
+
+
+    showToast(
+      "Profile updated.",
+      "success"
+    );
+  }
+);
 
 themeToggleBtn.addEventListener(
   "click",
@@ -3515,11 +3816,13 @@ if (
   }
 
 
-  closeHistory();
+closeHistory();
 
-  closeSettings();
+closeSettings();
 
-  messageInput.focus();
+closeProfileModal();
+
+messageInput.focus();
 }
   }
 );
@@ -3534,7 +3837,7 @@ async function startApp() {
   loadSettings();
 
   restoreMessageDraft();
-
+  renderProfile();
 
   /*
     Remove leftovers from older versions.
@@ -3619,12 +3922,15 @@ async function startApp() {
       Telegram profile.
     */
 
-    if (data.user) {
-      localStorage.setItem(
-        "globalblamp_telegram_user",
-        JSON.stringify(data.user)
-      );
-    }
+if (data.user) {
+  localStorage.setItem(
+    "globalblamp_telegram_user",
+    JSON.stringify(data.user)
+  );
+}
+
+
+renderProfile();
 
 
     hasActiveApi =
