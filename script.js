@@ -1037,6 +1037,10 @@ function isDesktopLayout() {
 
 function openHistory() {
   if (isDesktopLayout()) {
+    historyPanel.classList.remove(
+      "hidden"
+    );
+
     chatApp.classList.remove(
       "sidebar-collapsed"
     );
@@ -1057,6 +1061,10 @@ function openHistory() {
 
 function closeHistory() {
   if (isDesktopLayout()) {
+    historyPanel.classList.remove(
+      "hidden"
+    );
+
     chatApp.classList.add(
       "sidebar-collapsed"
     );
