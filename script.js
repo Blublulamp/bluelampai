@@ -2043,6 +2043,54 @@ if (!messages.length) {
   messageInput.focus();
 }
 
+async function renameCloudChat(
+  chatId,
+  title
+) {
+  const response = await fetch(
+    "/api/history/rename-chat",
+    {
+      method: "POST",
+
+      headers: {
+        "Content-Type":
+          "application/json"
+      },
+
+      body: JSON.stringify({
+        chat_id: chatId,
+        title
+      })
+    }
+  );
+
+
+  let data = null;
+
+
+  try {
+    data =
+      await response.json();
+
+  } catch {
+    data = null;
+  }
+
+
+  if (!response.ok) {
+    throw new Error(
+      data?.error ||
+        "Could not rename chat"
+    );
+  }
+
+
+  return data?.chat || {
+    id: chatId,
+    title
+  };
+}
+
 async function deleteCloudChat(chatId) {
   const response = await fetch(
     `/api/history/delete-chat?chat_id=${encodeURIComponent(chatId)}`,
@@ -3110,11 +3158,125 @@ closeRenameChatBtn.addEventListener(
 
 saveRenameChatBtn.addEventListener(
   "click",
-  () => {
-    showToast(
-      "Rename backend connection is the next step.",
-      "error"
-    );
+  async () => {
+    if (!currentChatId) {
+      closeRenameChatModal();
+
+      showToast(
+        "There is no conversation to rename.",
+        "error"
+      );
+
+      return;
+    }
+
+
+    const title =
+      renameChatInput.value
+        .replace(/\s+/g, " ")
+        .trim()
+        .slice(0, 60);
+
+
+    if (!title) {
+      showToast(
+        "Enter a chat name.",
+        "error"
+      );
+
+      renameChatInput.focus();
+
+      return;
+    }
+
+
+    const chatId =
+      currentChatId;
+
+
+    saveRenameChatBtn.disabled =
+      true;
+
+    saveRenameChatBtn.textContent =
+      "Saving...";
+
+
+    try {
+      await settleActiveSendBeforeNavigation();
+
+
+      const renamedChat =
+        await renameCloudChat(
+          chatId,
+          title
+        );
+
+
+      const finalTitle =
+        renamedChat?.title ||
+        title;
+
+
+      setCurrentChatTitle(
+        finalTitle
+      );
+
+
+      cachedChats =
+        cachedChats.map(
+          (chat) =>
+            chat.id === chatId
+              ? {
+                  ...chat,
+                  title:
+                    finalTitle
+                }
+              : chat
+        );
+
+
+      filterChatList();
+
+
+      closeRenameChatModal();
+
+
+      showToast(
+        "Chat renamed.",
+        "success"
+      );
+
+
+      try {
+        await loadChats();
+
+      } catch (error) {
+        console.error(
+          "Could not refresh chats after rename:",
+          error
+        );
+      }
+
+    } catch (error) {
+      console.error(
+        "Could not rename chat:",
+        error
+      );
+
+
+      showToast(
+        error.message ||
+          "Could not rename chat.",
+        "error"
+      );
+
+    } finally {
+      saveRenameChatBtn.disabled =
+        false;
+
+      saveRenameChatBtn.textContent =
+        "Save";
+    }
   }
 );
 
