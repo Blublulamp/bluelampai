@@ -15,6 +15,13 @@
 
 <body>
 
+<a
+  class="skip-link"
+  href="#chatArea"
+>
+  Skip to chat
+</a>
+  
   <div id="loginScreen" class="login-screen">
 
     <div class="login-card">
@@ -193,10 +200,11 @@
     </header>
 
 
-    <main
-      id="chatArea"
-      class="chat-area"
-    >
+<main
+  id="chatArea"
+  class="chat-area"
+  tabindex="-1"
+>
 
       <div class="welcome-message">
 
@@ -228,11 +236,12 @@
 </button>
       <div class="composer">
 
-        <textarea
-          id="messageInput"
-          placeholder="Message GlobalBLAMP..."
-          rows="1"
-        ></textarea>
+<textarea
+  id="messageInput"
+  placeholder="Message GlobalBLAMP..."
+  rows="1"
+  aria-label="Message GlobalBLAMP AI"
+></textarea>
 
 
         <button
@@ -257,17 +266,30 @@
 </div>
 
 
-  <div id="settingsModal" class="modal hidden">
+<div
+  id="settingsModal"
+  class="modal hidden"
+  role="dialog"
+  aria-modal="true"
+  aria-labelledby="settingsTitle"
+>
 
-    <div class="modal-card">
+  <div class="modal-card">
 
-      <div class="modal-header">
+    <div class="modal-header">
 
-        <h2>Settings</h2>
+      <h2 id="settingsTitle">
+        Settings
+      </h2>
 
-        <button id="closeSettingsBtn" class="icon-button">
-          ✕
-        </button>
+<button
+  id="closeSettingsBtn"
+  class="icon-button"
+  type="button"
+  aria-label="Close settings"
+>
+  ✕
+</button>
 
       </div>
 
