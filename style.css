@@ -1234,6 +1234,8 @@ body {
 
   background: transparent;
   color: var(--text);
+
+  white-space: normal;
 }
 
 
@@ -1273,7 +1275,7 @@ body {
     16px;
 
   display: flex;
-  align-items: flex-end;
+  align-items: center;
 
   gap: 8px;
 
@@ -1336,6 +1338,10 @@ body {
 
   font-size: 16px;
 
+  display: grid;
+  place-items: center;
+  align-self: center;
+  
   transition:
     opacity 120ms ease,
     transform 120ms ease;
