@@ -1477,6 +1477,14 @@ border:
   .app {
     padding-left:
       var(--sidebar-width);
+
+    transition:
+      padding-left 160ms ease;
+  }
+
+
+  .app.sidebar-collapsed {
+    padding-left: 0;
   }
 
 
@@ -1485,18 +1493,19 @@ border:
       var(--sidebar-width);
 
     box-shadow: none;
+
+    transform:
+      translateX(0);
+
+    transition:
+      transform 160ms ease;
   }
 
 
-  /*
-    JS uses .hidden for the mobile drawer.
-
-    On desktop the sidebar stays open
-    permanently.
-  */
-
-  .history-panel.hidden {
-    display: flex !important;
+  .app.sidebar-collapsed
+  .history-panel {
+    transform:
+      translateX(-100%);
   }
 
 
@@ -1506,12 +1515,12 @@ border:
 
 
   .sidebar-close {
-    display: none;
+    display: grid;
   }
 
 
   .menu-button {
-    display: none;
+    display: grid;
   }
 
 
@@ -2708,4 +2717,130 @@ a:focus-visible {
       avoid;
   }
 
+}
+/* =========================================
+   REDESIGN V9
+   SIDEBAR + CHAT MENU
+========================================= */
+
+.sidebar-brand {
+  flex: 1;
+}
+
+
+.sidebar-brand-text {
+  padding-left: 4px;
+}
+
+
+.chat-menu-wrap {
+  position: relative;
+
+  flex: 0 0 auto;
+}
+
+
+.chat-menu-button {
+  font-size: 21px;
+  line-height: 1;
+}
+
+
+.chat-menu {
+  position: absolute;
+
+  top: calc(100% + 6px);
+  right: 0;
+
+  z-index: 1200;
+
+  width: 170px;
+
+  padding: 6px;
+
+  border:
+    1px solid
+    var(--border);
+
+  border-radius: 12px;
+
+  background:
+    var(--surface);
+
+  box-shadow:
+    0 12px 32px
+    rgba(0, 0, 0, 0.28);
+}
+
+
+.chat-menu-item {
+  width: 100%;
+  min-height: 38px;
+
+  padding:
+    0
+    10px;
+
+  border-radius: 8px;
+
+  background: transparent;
+  color: var(--text);
+
+  font-size: 13px;
+  text-align: left;
+}
+
+
+.chat-menu-item:hover {
+  background:
+    var(--surface-hover);
+}
+
+
+.chat-menu-item.danger {
+  color: #ff9c9c;
+}
+
+
+.chat-menu-item.danger:hover {
+  background: #302020;
+}
+
+
+.rename-chat-card {
+  max-width: 420px;
+}
+
+
+.rename-chat-actions {
+  margin-top: 20px;
+
+  display: flex;
+  justify-content: flex-end;
+
+  gap: 8px;
+}
+
+
+.rename-chat-actions
+.primary-confirm-button,
+.rename-chat-actions
+.secondary-button {
+  min-width: 86px;
+}
+
+
+body.light-theme
+.chat-menu {
+  background: #ffffff;
+
+  box-shadow:
+    0 12px 30px
+    rgba(0, 0, 0, 0.14);
+}
+
+
+body.light-theme
+.chat-menu-item.danger:hover {
+  background: #fff0f0;
 }
