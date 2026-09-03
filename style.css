@@ -1515,15 +1515,28 @@ border:
     display: none !important;
   }
 
+.menu-button {
+  display: grid;
+}
 
-  .sidebar-close {
-    display: grid;
-  }
 
+.app.sidebar-collapsed
+.menu-button {
+  position: fixed;
 
-  .menu-button {
-    display: grid;
-  }
+  top: 12px;
+  left: 12px;
+
+  z-index: 1600;
+
+  width: 34px;
+  height: 34px;
+
+  margin: 0;
+
+  background:
+    transparent;
+}
 
 
   .topbar {
@@ -1567,20 +1580,15 @@ border:
   }
 
 
-  .app.sidebar-collapsed
-  .sidebar-header {
-    justify-content: center;
+.app.sidebar-collapsed
+.sidebar-header {
+  min-height: 42px;
 
-    padding-left: 0;
-    padding-right: 0;
-  }
+  justify-content: center;
 
-
-  .app.sidebar-collapsed
-  .sidebar-close {
-    margin: 0;
-  }
-
+  padding-left: 0;
+  padding-right: 0;
+}
 
   .app.sidebar-collapsed
   .sidebar-profile-wrap {
