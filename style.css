@@ -1478,8 +1478,8 @@ border:
     padding-left:
       var(--sidebar-width);
 
-    transition:
-      padding-left 160ms ease;
+transition:
+  padding-left 220ms cubic-bezier(0.4, 0, 0.2, 1);
   }
 
 
@@ -1498,7 +1498,7 @@ border:
       translateX(0);
 
     transition:
-      width 160ms ease;
+      width 220ms cubic-bezier(0.4, 0, 0.2, 1);
   }
 
 
@@ -1565,29 +1565,59 @@ border:
     padding-right: 30px;
   }
 
-  .app.sidebar-collapsed
-  .sidebar-brand-text,
+.app.sidebar-collapsed
+.sidebar-brand-text,
 
-  .app.sidebar-collapsed
-  .new-chat-button,
+.app.sidebar-collapsed
+.new-chat-button,
 
-  .app.sidebar-collapsed
-  .sidebar-search,
+.app.sidebar-collapsed
+.sidebar-search,
 
-  .app.sidebar-collapsed
-  .sidebar-label,
+.app.sidebar-collapsed
+.sidebar-label,
 
-  .app.sidebar-collapsed
-  .chat-list,
+.app.sidebar-collapsed
+.chat-list {
+  display: none;
+}
 
-  .app.sidebar-collapsed
-  .sidebar-profile-info,
+.app.sidebar-collapsed
+.sidebar-profile {
+  gap: 0;
+}
 
-  .app.sidebar-collapsed
-  .sidebar-profile-more {
-    display: none;
-  }
 
+.app.sidebar-collapsed
+.sidebar-profile-info {
+  flex: 0 0 0;
+  max-width: 0;
+
+  overflow: hidden;
+
+  opacity: 0;
+
+  transform:
+    translateX(-4px);
+
+  pointer-events: none;
+}
+
+
+.app.sidebar-collapsed
+.sidebar-profile-more {
+  width: 0;
+  max-width: 0;
+
+  overflow: hidden;
+
+  opacity: 0;
+
+  transform:
+    translateX(-4px);
+
+  pointer-events: none;
+}
 
 .app.sidebar-collapsed
 .sidebar-header {
@@ -1609,25 +1639,30 @@ border:
 
 .app.sidebar-collapsed
 .sidebar-profile-wrap {
-  width: 42px;
+  width: 100%;
 
   margin-top: auto;
 
   padding-top: 6px;
 
-  border-top: 0;
+  border-top:
+    1px solid transparent;
 }
 
 
 .app.sidebar-collapsed
 .sidebar-profile {
-  width: 42px;
-  height: 42px;
-  min-height: 42px;
+  width: 100%;
+  height: auto;
+  min-height: 48px;
 
-  padding: 4px;
+  padding:
+    7px
+    8px
+    7px
+    4px;
 
-  justify-content: center;
+  justify-content: flex-start;
 
   gap: 0;
 
@@ -2987,7 +3022,11 @@ padding:
   background: transparent;
   color: var(--text);
 
-  text-align: left;
+text-align: left;
+
+transition:
+  background 120ms ease,
+  gap 220ms cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 
@@ -3038,7 +3077,21 @@ padding:
   display: flex;
   flex-direction: column;
 
-  gap: 2px;
+gap: 2px;
+
+max-width: 180px;
+
+overflow: hidden;
+
+opacity: 1;
+
+transform:
+  translateX(0);
+
+transition:
+max-width 220ms cubic-bezier(0.4, 0, 0.2, 1),
+opacity 160ms ease,
+transform 220ms cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 
@@ -3070,13 +3123,28 @@ padding:
 
 
 .sidebar-profile-more {
+  width: 18px;
+  max-width: 18px;
+
   flex: 0 0 auto;
+
+  overflow: hidden;
 
   color:
     var(--text-muted);
 
   font-size: 18px;
   line-height: 1;
+
+  opacity: 1;
+
+  transform:
+    translateX(0);
+
+transition:
+  max-width 220ms cubic-bezier(0.4, 0, 0.2, 1),
+  opacity 160ms ease,
+  transform 220ms cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 
