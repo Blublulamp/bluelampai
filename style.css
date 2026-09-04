@@ -1464,6 +1464,9 @@ border:
     );
 }
 
+.desktop-sidebar-toggle {
+  display: none;
+}
 
 /* =========================================
    DESKTOP
@@ -1499,13 +1502,15 @@ border:
   }
 
 
-  .app.sidebar-collapsed
-  .history-panel {
-    width: 58px;
+.app.sidebar-collapsed
+.history-panel {
+  width: 58px;
 
-    padding-left: 8px;
-    padding-right: 8px;
-  }
+  padding-left: 8px;
+  padding-right: 8px;
+
+  align-items: center;
+}
 
 
   .history-backdrop {
@@ -1518,17 +1523,37 @@ border:
 
 
 .desktop-sidebar-toggle {
-  display: grid;
+  width: 34px;
+  height: 34px;
 
   flex: 0 0 34px;
+
+  display: grid;
+  place-items: center;
+
+  margin: 0;
 }
 
-  .topbar {
-    padding-left: 24px;
-    padding-right: 24px;
-  }
+.topbar {
+  padding-left: 20px;
+  padding-right: 20px;
+}
+.topbar-actions {
+  gap: 2px;
+}
 
+.header-model-select {
+  height: 34px;
 
+  max-width: 170px;
+
+  padding:
+    0
+    26px
+    0
+    9px;
+}
+  
   .chat-area {
     padding-left: 30px;
     padding-right: 30px;
@@ -1566,12 +1591,14 @@ border:
 
 .app.sidebar-collapsed
 .sidebar-header {
+  width: 100%;
   min-height: 42px;
 
   justify-content: center;
 
-  padding-left: 0;
-  padding-right: 0;
+  padding: 0;
+
+  margin-bottom: 8px;
 }
 
 
@@ -1580,29 +1607,32 @@ border:
   display: none;
 }
 
-  .app.sidebar-collapsed
-  .sidebar-profile-wrap {
-    margin-top: auto;
+.app.sidebar-collapsed
+.sidebar-profile-wrap {
+  width: 42px;
 
-    padding-top: 8px;
+  margin-top: auto;
 
-    border-top: 0;
-  }
+  padding-top: 6px;
+
+  border-top: 0;
+}
 
 
-  .app.sidebar-collapsed
-  .sidebar-profile {
-    width: 42px;
-    min-height: 42px;
+.app.sidebar-collapsed
+.sidebar-profile {
+  width: 42px;
+  height: 42px;
+  min-height: 42px;
 
-    padding: 4px;
+  padding: 4px;
 
-    justify-content: center;
+  justify-content: center;
 
-    gap: 0;
+  gap: 0;
 
-    border-radius: 10px;
-  }
+  border-radius: 10px;
+}
 
 
   .app.sidebar-collapsed
@@ -1757,7 +1787,10 @@ body.light-theme
 .history-panel {
   background: #f5f5f5;
 }
-
+body.light-theme
+.chat-list-item.active {
+  background: #e7e7e7;
+}
 
 body.light-theme
 .composer {
@@ -2814,7 +2847,7 @@ a:focus-visible {
 
 
 .chat-menu-button {
-  font-size: 21px;
+  font-size: 19px;
   line-height: 1;
 }
 
