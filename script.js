@@ -238,7 +238,7 @@ let hasActiveApi = false;
 
 
 const DRAFT_STORAGE_KEY =
-  "globalblamp_message_draft";
+  "BlamP_message_draft";
 
 
 function saveMessageDraft() {
@@ -284,7 +284,7 @@ function clearMessageDraft() {
 
 let currentModel =
   localStorage.getItem(
-    "globalblamp_model"
+    "BlamP_model"
   ) || "gpt-5.6-sol";
 function setupHeaderModelPicker() {
   if (
@@ -330,7 +330,7 @@ function setSelectedModel(model) {
 
 
   localStorage.setItem(
-    "globalblamp_model",
+    "BlamP_model",
     currentModel
   );
 
@@ -371,7 +371,7 @@ function getCachedTelegramUser() {
   try {
     const raw =
       localStorage.getItem(
-        "globalblamp_telegram_user"
+        "BlamP_telegram_user"
       );
 
     return raw
@@ -823,7 +823,7 @@ function resetToNewChat() {
       </h2>
 
       <p>
-        Start a conversation with GlobalBLAMP AI.
+        Start a conversation with BlamP AI.
       </p>
 
     </div>
@@ -931,7 +931,7 @@ async function handleTelegramOidcResult(
     }
 
 localStorage.setItem(
-  "globalblamp_telegram_user",
+  "BlamP_telegram_user",
   JSON.stringify(data.user)
 );
 
@@ -961,7 +961,7 @@ if (
   data.api_access.active
 ) {
   localStorage.removeItem(
-    "globalblamp_unlicensed_login_at"
+    "BlamP_unlicensed_login_at"
   );
 
 
@@ -1315,19 +1315,19 @@ async function logout() {
   */
 
   localStorage.removeItem(
-    "globalblamp_session_token"
+    "BlamP_session_token"
   );
 
   localStorage.removeItem(
-    "globalblamp_api_key"
+    "BlamP_api_key"
   );
 
   localStorage.removeItem(
-    "globalblamp_telegram_user"
+    "BlamP_telegram_user"
   );
 
 localStorage.removeItem(
-  "globalblamp_unlicensed_login_at"
+  "BlamP_unlicensed_login_at"
 );
 
 
@@ -1489,7 +1489,7 @@ try {
     hasActiveApi = true;
   }
 localStorage.removeItem(
-  "globalblamp_unlicensed_login_at"
+  "BlamP_unlicensed_login_at"
 );
 
 const modelChanged =
@@ -1514,11 +1514,11 @@ headerModelSelect.value =
 apiKeyInput.value = "";
 
 localStorage.removeItem(
-  "globalblamp_api_key"
+  "BlamP_api_key"
 );
 
 localStorage.setItem(
-  "globalblamp_model",
+  "BlamP_model",
   currentModel
 );
 
@@ -2504,7 +2504,7 @@ currentModel =
   chat.model || currentModel;
 
 localStorage.setItem(
-  "globalblamp_model",
+  "BlamP_model",
   currentModel
 );
 
@@ -2536,7 +2536,7 @@ if (!messages.length) {
       </h2>
 
       <p>
-        Start a conversation with GlobalBLAMP AI.
+        Start a conversation with BlamP AI.
       </p>
 
     </div>
@@ -3649,7 +3649,7 @@ function applyTheme(theme) {
 function loadTheme() {
   const savedTheme =
     localStorage.getItem(
-      "globalblamp_theme"
+      "BlamP_theme"
     );
 
 
@@ -4064,11 +4064,11 @@ saveProfileBtn.addEventListener(
       */
 
       localStorage.removeItem(
-        "globalblamp_profile_display_name"
+        "BlamP_profile_display_name"
       );
 
       localStorage.removeItem(
-        "globalblamp_profile_photo"
+        "BlamP_profile_photo"
       );
 
 
@@ -4121,7 +4121,7 @@ themeToggleBtn.addEventListener(
 
 
     localStorage.setItem(
-      "globalblamp_theme",
+      "BlamP_theme",
       nextTheme
     );
 
@@ -4344,11 +4344,11 @@ async function startApp() {
   */
 
   localStorage.removeItem(
-    "globalblamp_session_token"
+    "BlamP_session_token"
   );
 
   localStorage.removeItem(
-    "globalblamp_api_key"
+    "BlamP_api_key"
   );
 
 
@@ -4376,11 +4376,11 @@ async function startApp() {
 
     if (response.status === 401) {
       localStorage.removeItem(
-        "globalblamp_telegram_user"
+        "BlamP_telegram_user"
       );
 
       localStorage.removeItem(
-        "globalblamp_unlicensed_login_at"
+        "BlamP_unlicensed_login_at"
       );
 
 
@@ -4421,7 +4421,7 @@ async function startApp() {
 
 if (data.user) {
   localStorage.setItem(
-    "globalblamp_telegram_user",
+    "BlamP_telegram_user",
     JSON.stringify(data.user)
   );
 }
@@ -4441,7 +4441,7 @@ await loadServerProfile();
 
     if (hasActiveApi) {
       localStorage.removeItem(
-        "globalblamp_unlicensed_login_at"
+        "BlamP_unlicensed_login_at"
       );
 
 
