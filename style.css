@@ -1625,7 +1625,7 @@ transition:
 
   transform:
     translateX(-4px);
-
+  transition-delay: 0ms;
   pointer-events: none;
 }
 
@@ -3170,9 +3170,9 @@ transform 220ms cubic-bezier(0.4, 0, 0.2, 1);
     translateX(0);
 
 transition:
-  max-width 220ms cubic-bezier(0.4, 0, 0.2, 1),
-  opacity 160ms ease,
-  transform 220ms cubic-bezier(0.4, 0, 0.2, 1);
+  max-width 220ms cubic-bezier(0.4, 0, 0.2, 1) 100ms,
+  opacity 160ms ease 100ms,
+  transform 220ms cubic-bezier(0.4, 0, 0.2, 1) 100ms;
 }
 
 
