@@ -286,33 +286,175 @@ let currentModel =
   localStorage.getItem(
     "BlamP_model"
   ) || "gpt-5.6-sol";
+function syncModelPickerLabel() {
+  const label = document.getElementById("modelPickerLabel");
+  if (!label) return;
+
+  label.textContent =
+    headerModelSelect.selectedOptions[0]?.textContent.trim() ||
+    currentModel;
+
+  label.parentElement.title = label.textContent;
+}
+
 function setupHeaderModelPicker() {
-  if (
-    !headerModelSelect ||
-    !modelSelect
-  ) {
-    return;
+  if (!headerModelSelect || !modelSelect) return;
+
+  headerModelSelect.innerHTML = modelSelect.innerHTML;
+  headerModelSelect.value = currentModel;
+  modelSelect.value = currentModel;
+  syncModelPickerLabel();
+
+  const button = document.getElementById("modelPickerButton");
+  const panel = document.getElementById("modelPickerPanel");
+  const search = document.getElementById("modelPickerSearch");
+  const options = document.getElementById("modelPickerOptions");
+  const empty = document.getElementById("modelPickerEmpty");
+
+  function positionPanel() {
+    const rect = button.getBoundingClientRect();
+    const width = Math.min(340, window.innerWidth - 24);
+    const left = Math.max(
+      12,
+      Math.min(rect.right - width, window.innerWidth - width - 12)
+    );
+
+    panel.style.left = `${left}px`;
+    panel.style.top = `${rect.bottom + 8}px`;
+    panel.style.maxHeight =
+      `max(0px, calc(100dvh - ${rect.bottom + 20}px))`;
   }
 
+  function renderOptions() {
+    options.replaceChildren();
+    const query = search.value.trim().toLowerCase();
+    let count = 0;
 
-  /*
-    Settings owns the model list.
+    for (const section of headerModelSelect.children) {
+      const grouped = section.tagName === "OPTGROUP";
+      const groupName = grouped ? section.label : "";
+      const entries = grouped
+        ? Array.from(section.children)
+        : [section];
 
-    Copy the same options into
-    the top-bar picker so we do not
-    maintain two separate model lists.
-  */
+      const matches = entries.filter(option =>
+        option.tagName === "OPTION" &&
+        !option.hidden &&
+        !section.hidden &&
+        `${groupName} ${option.textContent}`
+          .toLowerCase()
+          .includes(query)
+      );
 
-  headerModelSelect.innerHTML =
-    modelSelect.innerHTML;
+      if (!matches.length) continue;
 
+      if (grouped) {
+        const heading = document.createElement("p");
+        heading.className = "model-picker-group";
+        heading.textContent = groupName;
+        options.append(heading);
+      }
 
-  headerModelSelect.value =
-    currentModel;
+      for (const option of matches) {
+        const row = document.createElement("button");
+        row.type = "button";
+        row.className = "model-picker-option";
+        row.disabled =
+          option.disabled || (grouped && section.disabled);
+        row.setAttribute(
+          "aria-pressed",
+          String(option.value === headerModelSelect.value)
+        );
 
+        const name = document.createElement("span");
+        name.textContent = option.textContent.trim();
 
-  modelSelect.value =
-    currentModel;
+        const check = document.createElement("span");
+        check.className = "model-picker-check";
+        check.textContent = "✓";
+        check.setAttribute("aria-hidden", "true");
+
+        row.append(name, check);
+        row.addEventListener("click", () => {
+          panel.hidePopover();
+          button.focus();
+
+          if (option.value === headerModelSelect.value) return;
+
+          headerModelSelect.value = option.value;
+          headerModelSelect.dispatchEvent(
+            new Event("change", { bubbles: true })
+          );
+        });
+
+        options.append(row);
+        count++;
+      }
+    }
+
+    empty.hidden = count !== 0;
+  }
+
+  button.setAttribute("aria-expanded", "false");
+
+  panel.addEventListener("beforetoggle", event => {
+    if (event.newState !== "open") return;
+
+    search.value = "";
+    renderOptions();
+    positionPanel();
+  });
+
+  panel.addEventListener("toggle", event => {
+    const open = event.newState === "open";
+    button.setAttribute("aria-expanded", String(open));
+
+    if (open) {
+      if (window.matchMedia("(pointer: coarse)").matches) {
+        options.querySelector("button:not(:disabled)")?.focus({
+          preventScroll: true
+        });
+      } else {
+        search.focus({ preventScroll: true });
+      }
+    }
+  });
+
+  search.addEventListener("input", renderOptions);
+
+  panel.addEventListener("keydown", event => {
+    if (event.key === "Escape") {
+      if (event.isComposing) return;
+
+      event.preventDefault();
+      event.stopPropagation();
+      panel.hidePopover();
+      button.focus();
+      return;
+    }
+
+    if (event.key !== "ArrowDown" && event.key !== "ArrowUp") {
+      return;
+    }
+
+    const rows = Array.from(
+      options.querySelectorAll("button:not(:disabled)")
+    );
+    if (!rows.length) return;
+
+    event.preventDefault();
+    const index = rows.indexOf(document.activeElement);
+    const next = index < 0
+      ? (event.key === "ArrowDown" ? 0 : rows.length - 1)
+      : (index + (event.key === "ArrowDown" ? 1 : -1) +
+          rows.length) % rows.length;
+
+    rows[next].focus();
+  });
+
+  window.addEventListener("resize", () => {
+    if (panel.matches(":popover-open")) positionPanel();
+  });
 }
 
 
@@ -344,6 +486,7 @@ function setSelectedModel(model) {
   if (headerModelSelect) {
     headerModelSelect.value =
       currentModel;
+    syncModelPickerLabel();
   }
 
 
@@ -1028,6 +1171,7 @@ modelSelect.value =
 
 headerModelSelect.value =
   currentModel;
+syncModelPickerLabel();
 }
 
 function isDesktopLayout() {
@@ -1510,6 +1654,7 @@ modelSelect.value =
 
 headerModelSelect.value =
   currentModel;
+syncModelPickerLabel();
 
 apiKeyInput.value = "";
 
@@ -2517,7 +2662,8 @@ modelSelect.value =
 
 headerModelSelect.value =
   currentModel;
-
+syncModelPickerLabel();
+  
   messages = savedMessages.map(
     (message) => ({
       role: message.role,
