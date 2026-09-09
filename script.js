@@ -2532,8 +2532,9 @@ function renderChatList(chats) {
     meta.className =
       "chat-list-meta";
 
-    meta.textContent =
-      chat.model || "";
+    meta.textContent = getModelDisplayName(
+      chat.model || ""
+    );
 
 
 button.appendChild(title);
@@ -2546,8 +2547,26 @@ const deleteBtn =
 deleteBtn.className =
   "chat-delete-button";
 
-deleteBtn.textContent = "Delete";
+deleteBtn.type = "button";
+deleteBtn.setAttribute(
+  "aria-label",
+  `Delete ${chat.title || "New Chat"}`
+);
 
+deleteBtn.innerHTML = `
+  <svg viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    stroke-width="1.7"
+    stroke-linecap="round"
+    stroke-linejoin="round"
+    aria-hidden="true">
+    <path d="M4 7h16"/>
+    <path d="M10 11v6m4-6v6"/>
+    <path d="M6 7l1 13h10l1-13"/>
+    <path d="M9 7V4h6v3"/>
+  </svg>
+`;
 
 deleteBtn.addEventListener(
   "click",
