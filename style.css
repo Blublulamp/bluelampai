@@ -1538,21 +1538,6 @@ transition:
   padding-left: 20px;
   padding-right: 20px;
 }
-.topbar-actions {
-  gap: 2px;
-}
-
-.header-model-select {
-  height: 34px;
-
-  max-width: 170px;
-
-  padding:
-    0
-    26px
-    0
-    9px;
-}
   
   .chat-area {
     padding-left: 30px;
@@ -1800,6 +1785,18 @@ transition:
 .header-model-select optgroup {
   background: var(--surface);
   color: var(--text);
+}
+
+@media (min-width: 900px) {
+  .topbar-actions {
+    gap: 2px;
+  }
+
+  .header-model-select {
+    height: 34px;
+    max-width: 170px;
+    padding: 0 26px 0 9px;
+  }
 }
 
 
