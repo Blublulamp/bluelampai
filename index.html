@@ -382,25 +382,94 @@
 >
   ↓
 </button>
-      <div class="composer">
-
-<textarea
-  id="messageInput"
-  placeholder="Message BlamP..."
-  rows="1"
-  aria-label="Message BlamP AI"
-></textarea>
+<div
+  id="attachmentPreviewStrip"
+  class="attachment-preview-strip hidden"
+  aria-label="Selected attachments"
+></div>
 
 
-        <button
-          id="sendBtn"
-          type="button"
-          aria-label="Send message"
-        >
-          <span class="send-arrow"></span>
-        </button>
+<div class="composer">
 
-      </div>
+  <div class="attachment-menu-wrap">
+
+    <button
+      id="attachmentBtn"
+      class="attachment-button"
+      type="button"
+      aria-label="Add attachment"
+      aria-expanded="false"
+    >
+      <svg
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        stroke-width="1.8"
+        stroke-linecap="round"
+        aria-hidden="true"
+      >
+        <path d="M12 5v14"/>
+        <path d="M5 12h14"/>
+      </svg>
+    </button>
+
+
+    <div
+      id="attachmentMenu"
+      class="attachment-menu hidden"
+    >
+
+      <button
+        id="addPhotoBtn"
+        type="button"
+      >
+        Add photo
+      </button>
+
+      <button
+        id="addFileBtn"
+        type="button"
+      >
+        Add file
+      </button>
+
+    </div>
+
+  </div>
+
+
+  <textarea
+    id="messageInput"
+    placeholder="Message BlamP..."
+    rows="1"
+    aria-label="Message BlamP AI"
+  ></textarea>
+
+
+  <button
+    id="sendBtn"
+    type="button"
+    aria-label="Send message"
+  >
+    <span class="send-arrow"></span>
+  </button>
+
+</div>
+
+
+<input
+  id="attachmentPhotoInput"
+  class="hidden"
+  type="file"
+  accept="image/jpeg,image/png,image/webp"
+>
+
+
+<input
+  id="attachmentFileInput"
+  class="hidden"
+  type="file"
+>
 
 
       <p class="composer-note">
