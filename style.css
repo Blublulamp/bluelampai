@@ -2537,6 +2537,42 @@ body.light-theme
   font-weight: 600;
 }
 
+@media (max-width: 899px) {
+
+  .confirm-card {
+    max-width: 340px;
+    padding: 18px;
+    border-radius: 16px;
+  }
+
+  .confirm-card h2 {
+    margin-bottom: 8px;
+    font-size: 18px;
+  }
+
+  .confirm-message {
+    font-size: 13px;
+    line-height: 1.5;
+  }
+
+  .confirm-actions {
+    margin-top: 18px;
+    gap: 7px;
+  }
+
+  .confirm-actions
+  .secondary-button,
+  .confirm-actions
+  .danger-button {
+    min-height: 38px;
+    padding:
+      0
+      13px;
+
+    font-size: 12.5px;
+  }
+
+}
 
 .secondary-button {
   background:
