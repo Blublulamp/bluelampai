@@ -1660,10 +1660,14 @@ function renderMarkdown(text) {
       `);
 
 
-      return `@@CODEBLOCK_${index}@@`;
+      return `\n\n@@CODEBLOCK_${index}@@\n\n`;
     }
   );
 
+  html = html.replace(
+    /^ {0,3}(#{1,3})[ \t]+([^\n]+)$/gm,
+    "\n\n$1 $2\n\n"
+  );
 
   const blocks =
     html
@@ -3376,9 +3380,13 @@ function updateScrollToLatestButton() {
 function scrollToLatest(
   behavior = "smooth"
 ) {
+  const reduceMotion = window.matchMedia(
+    "(prefers-reduced-motion: reduce)"
+  ).matches;
+
   chatArea.scrollTo({
     top: chatArea.scrollHeight,
-    behavior
+    behavior: reduceMotion ? "instant" : behavior
   });
 
 
@@ -4249,7 +4257,8 @@ messageInput.addEventListener(
 
     if (
       event.key === "Enter" &&
-      !event.shiftKey
+      !event.shiftKey &&
+      !event.isComposing
     ) {
       event.preventDefault();
 
