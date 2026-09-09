@@ -3811,3 +3811,78 @@ body.light-theme #themeToggleBtn .theme-sun {
 body.light-theme #themeToggleBtn .theme-moon {
   display: block;
 }
+/* Refined chat history rows */
+
+.chat-list-row {
+  align-items: center;
+  gap: 2px;
+  margin-bottom: 3px;
+}
+
+.chat-list-row .chat-list-item {
+  min-width: 0;
+}
+
+.chat-list-title,
+.chat-list-meta {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.chat-list-title {
+  font-weight: 500;
+}
+
+.chat-list-meta {
+  margin-top: 4px;
+  color: var(--text-secondary);
+}
+
+.chat-delete-button {
+  display: grid;
+  place-items: center;
+  width: 34px;
+  min-width: 34px;
+  height: 34px;
+  min-height: 34px;
+  padding: 0;
+  border-radius: 7px;
+  background: transparent;
+  color: var(--text-muted);
+  font-size: 0;
+}
+
+.chat-delete-button svg {
+  width: 15px;
+  height: 15px;
+  pointer-events: none;
+}
+
+.chat-delete-button:hover {
+  background: var(--surface-hover);
+  color: var(--text);
+}
+
+.chat-delete-button:active {
+  background: var(--surface-active);
+}
+
+.chat-delete-button:disabled {
+  opacity: 0.45;
+  cursor: wait;
+}
+
+@media (max-width: 899px) {
+  .chat-delete-button {
+    width: 44px;
+    min-width: 44px;
+    height: 44px;
+    min-height: 44px;
+  }
+
+  .chat-delete-button svg {
+    width: 16px;
+    height: 16px;
+  }
+}
