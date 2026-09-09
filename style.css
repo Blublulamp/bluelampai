@@ -167,7 +167,7 @@ button {
 .modal {
   position: fixed;
   inset: 0;
-  z-index: 1000;
+  z-index: 2000;
   padding: 18px;
   background: rgba(0, 0, 0, 0.72);
   display: flex;
