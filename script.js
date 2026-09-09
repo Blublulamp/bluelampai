@@ -3831,10 +3831,7 @@ function applyTheme(theme) {
   );
 
 
-  themeToggleBtn.textContent =
-    useLight
-      ? "☾"
-      : "☀";
+  // Theme icon visibility follows body.light-theme in CSS.
 
 
   themeToggleBtn.setAttribute(
