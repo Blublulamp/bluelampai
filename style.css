@@ -1895,29 +1895,25 @@ body.light-theme
 /* Mobile model picker */
 
 @media (max-width: 650px) {
+  .topbar-left {
+    flex-shrink: 0;
+  }
 
-.header-model-select {
-  max-width: 120px;
+  .topbar-actions {
+    min-width: 0;
+  }
 
-  height: 34px;
-
-  padding-left: 7px;
-
-  font-size: 11.5px;
-}
+  .header-model-select {
+    min-width: 0;
+    max-width: 170px;
+    height: 34px;
+    padding-left: 7px;
+    font-size: 11.5px;
+  }
 
   .topbar-title p {
     display: none;
   }
-
-}
-
-
-@media (max-width: 430px) {
-
-.header-model-select {
-  max-width: 96px;
-}
 }
 /* =========================================
    REDESIGN V3
