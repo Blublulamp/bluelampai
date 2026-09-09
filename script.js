@@ -286,13 +286,40 @@ let currentModel =
   localStorage.getItem(
     "BlamP_model"
   ) || "gpt-5.6-sol";
+function getModelDisplayName(value) {
+  const name = String(value || "");
+
+  // Leave unfamiliar IDs unchanged.
+  if (!/^(gpt|claude|deepseek|qwen|kimi|glm)-/.test(name)) {
+    return name;
+  }
+
+  const words = {
+    gpt: "GPT",
+    claude: "Claude",
+    deepseek: "DeepSeek",
+    qwen: "Qwen",
+    kimi: "Kimi",
+    glm: "GLM",
+    xhigh: "XHigh"
+  };
+
+  const normalized = name.startsWith("claude-")
+    ? name.replace(/(\d)-(\d)/g, "$1.$2")
+    : name;
+
+  return normalized.split("-").map(word =>
+    words[word] || word.charAt(0).toUpperCase() + word.slice(1)
+  ).join(" ");
+}
+
 function syncModelPickerLabel() {
   const label = document.getElementById("modelPickerLabel");
   if (!label) return;
 
-  label.textContent =
-    headerModelSelect.selectedOptions[0]?.textContent.trim() ||
-    currentModel;
+  label.textContent = getModelDisplayName(
+    headerModelSelect.value || currentModel
+  );
 
   label.parentElement.title = label.textContent;
 }
@@ -313,24 +340,27 @@ function setupHeaderModelPicker() {
 
   function positionPanel() {
     const rect = button.getBoundingClientRect();
-    const width = Math.min(340, window.innerWidth - 24);
-    const left = Math.max(
+    const width = Math.min(280, window.innerWidth - 24);
+
+    panel.style.left = `${Math.max(
       12,
       Math.min(rect.right - width, window.innerWidth - width - 12)
-    );
+    )}px`;
 
-    panel.style.left = `${left}px`;
     panel.style.top = `${rect.bottom + 8}px`;
     panel.style.maxHeight =
-      `max(0px, calc(100dvh - ${rect.bottom + 20}px))`;
+      `max(0px, min(360px, calc(100dvh - ${rect.bottom + 20}px)))`;
   }
 
   function renderOptions() {
     options.replaceChildren();
+
     const query = search.value.trim().toLowerCase();
     let count = 0;
 
     for (const section of headerModelSelect.children) {
+      if (section.hidden) continue;
+
       const grouped = section.tagName === "OPTGROUP";
       const groupName = grouped ? section.label : "";
       const entries = grouped
@@ -340,19 +370,28 @@ function setupHeaderModelPicker() {
       const matches = entries.filter(option =>
         option.tagName === "OPTION" &&
         !option.hidden &&
-        !section.hidden &&
-        `${groupName} ${option.textContent}`
+        `${groupName} ${option.value} ${getModelDisplayName(option.value)}`
           .toLowerCase()
           .includes(query)
       );
 
       if (!matches.length) continue;
 
+      let container = options;
+
       if (grouped) {
-        const heading = document.createElement("p");
-        heading.className = "model-picker-group";
+        const group = document.createElement("details");
+        group.className = "model-provider";
+
+        // Search expands matching groups; normal opening stays compact.
+        group.open = Boolean(query);
+
+        const heading = document.createElement("summary");
         heading.textContent = groupName;
-        options.append(heading);
+
+        group.append(heading);
+        options.append(group);
+        container = group;
       }
 
       for (const option of matches) {
@@ -361,13 +400,14 @@ function setupHeaderModelPicker() {
         row.className = "model-picker-option";
         row.disabled =
           option.disabled || (grouped && section.disabled);
+
         row.setAttribute(
           "aria-pressed",
           String(option.value === headerModelSelect.value)
         );
 
         const name = document.createElement("span");
-        name.textContent = option.textContent.trim();
+        name.textContent = getModelDisplayName(option.value);
 
         const check = document.createElement("span");
         check.className = "model-picker-check";
@@ -375,6 +415,7 @@ function setupHeaderModelPicker() {
         check.setAttribute("aria-hidden", "true");
 
         row.append(name, check);
+
         row.addEventListener("click", () => {
           panel.hidePopover();
           button.focus();
@@ -387,12 +428,13 @@ function setupHeaderModelPicker() {
           );
         });
 
-        options.append(row);
+        container.append(row);
         count++;
       }
     }
 
     empty.hidden = count !== 0;
+    options.scrollTop = 0;
   }
 
   button.setAttribute("aria-expanded", "false");
@@ -409,23 +451,22 @@ function setupHeaderModelPicker() {
     const open = event.newState === "open";
     button.setAttribute("aria-expanded", String(open));
 
-    if (open) {
-      if (window.matchMedia("(pointer: coarse)").matches) {
-        options.querySelector("button:not(:disabled)")?.focus({
-          preventScroll: true
-        });
-      } else {
-        search.focus({ preventScroll: true });
-      }
+    if (!open) return;
+
+    if (window.matchMedia("(pointer: coarse)").matches) {
+      options.querySelector("summary, button:not(:disabled)")
+        ?.focus({ preventScroll: true });
+    } else {
+      search.focus({ preventScroll: true });
     }
   });
 
   search.addEventListener("input", renderOptions);
 
   panel.addEventListener("keydown", event => {
-    if (event.key === "Escape") {
-      if (event.isComposing) return;
+    if (event.isComposing) return;
 
+    if (event.key === "Escape") {
       event.preventDefault();
       event.stopPropagation();
       panel.hidePopover();
@@ -438,11 +479,16 @@ function setupHeaderModelPicker() {
     }
 
     const rows = Array.from(
-      options.querySelectorAll("button:not(:disabled)")
-    );
+      options.querySelectorAll("summary, button:not(:disabled)")
+    ).filter(element => {
+      const group = element.closest("details");
+      return !group || group.open || element.tagName === "SUMMARY";
+    });
+
     if (!rows.length) return;
 
     event.preventDefault();
+
     const index = rows.indexOf(document.activeElement);
     const next = index < 0
       ? (event.key === "ArrowDown" ? 0 : rows.length - 1)
