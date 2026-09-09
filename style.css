@@ -3775,3 +3775,39 @@ body.light-theme .chat-menu-item.danger {
     min-height: 44px;
   }
 }
+/* Consistent topbar icons */
+
+.topbar-symbol {
+  display: block;
+  width: 18px;
+  height: 18px;
+  flex: 0 0 18px;
+  margin: auto;
+  pointer-events: none;
+}
+
+#themeToggleBtn,
+#settingsBtn,
+#chatMenuBtn {
+  display: grid;
+  place-items: center;
+  padding: 0;
+}
+
+/* Preserve the sidebar buttons' existing display rules. */
+
+#themeToggleBtn .theme-sun {
+  display: block;
+}
+
+#themeToggleBtn .theme-moon {
+  display: none;
+}
+
+body.light-theme #themeToggleBtn .theme-sun {
+  display: none;
+}
+
+body.light-theme #themeToggleBtn .theme-moon {
+  display: block;
+}
