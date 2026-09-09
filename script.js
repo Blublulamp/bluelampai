@@ -216,9 +216,50 @@ const profilePhotoInput =
     "profilePhotoInput"
   );
 
-const chatArea = document.getElementById("chatArea");
-const messageInput = document.getElementById("messageInput");
-const sendBtn = document.getElementById("sendBtn");
+const chatArea =
+  document.getElementById("chatArea");
+
+const messageInput =
+  document.getElementById("messageInput");
+
+const sendBtn =
+  document.getElementById("sendBtn");
+
+
+const attachmentBtn =
+  document.getElementById(
+    "attachmentBtn"
+  );
+
+const attachmentMenu =
+  document.getElementById(
+    "attachmentMenu"
+  );
+
+const addPhotoBtn =
+  document.getElementById(
+    "addPhotoBtn"
+  );
+
+const addFileBtn =
+  document.getElementById(
+    "addFileBtn"
+  );
+
+const attachmentPhotoInput =
+  document.getElementById(
+    "attachmentPhotoInput"
+  );
+
+const attachmentFileInput =
+  document.getElementById(
+    "attachmentFileInput"
+  );
+
+const attachmentPreviewStrip =
+  document.getElementById(
+    "attachmentPreviewStrip"
+  );
 
 const scrollToLatestBtn =
   document.getElementById(
@@ -235,7 +276,179 @@ let isGenerating = false;
 let sendInFlight = false;
 
 let hasActiveApi = false;
+let pendingAttachments = [];
 
+
+function renderPendingAttachments() {
+  attachmentPreviewStrip.replaceChildren();
+
+  attachmentPreviewStrip.classList.toggle(
+    "hidden",
+    pendingAttachments.length === 0
+  );
+
+
+  pendingAttachments.forEach(
+    (attachment) => {
+
+      const item =
+        document.createElement(
+          "div"
+        );
+
+      item.className =
+        "attachment-preview-item";
+
+
+      const thumb =
+        document.createElement(
+          "div"
+        );
+
+      thumb.className =
+        "attachment-preview-thumb";
+
+
+      if (
+        attachment.file.type
+          .startsWith("image/")
+      ) {
+        const image =
+          document.createElement(
+            "img"
+          );
+
+        image.src =
+          attachment.previewUrl;
+
+        image.alt = "";
+
+        thumb.appendChild(
+          image
+        );
+
+      } else {
+        thumb.textContent =
+          "FILE";
+      }
+
+
+      const info =
+        document.createElement(
+          "div"
+        );
+
+      info.className =
+        "attachment-preview-info";
+
+
+      const name =
+        document.createElement(
+          "div"
+        );
+
+      name.className =
+        "attachment-preview-name";
+
+      name.textContent =
+        attachment.file.name;
+
+
+      const type =
+        document.createElement(
+          "div"
+        );
+
+      type.className =
+        "attachment-preview-type";
+
+      type.textContent =
+        attachment.file.type ||
+        "File";
+
+
+      const remove =
+        document.createElement(
+          "button"
+        );
+
+      remove.type =
+        "button";
+
+      remove.className =
+        "attachment-preview-remove";
+
+      remove.textContent =
+        "×";
+
+      remove.setAttribute(
+        "aria-label",
+        `Remove ${attachment.file.name}`
+      );
+
+
+      remove.addEventListener(
+        "click",
+        () => {
+          URL.revokeObjectURL(
+            attachment.previewUrl
+          );
+
+          pendingAttachments =
+            pendingAttachments.filter(
+              (item) =>
+                item.id !==
+                attachment.id
+            );
+
+          renderPendingAttachments();
+        }
+      );
+
+
+      info.append(
+        name,
+        type
+      );
+
+      item.append(
+        thumb,
+        info,
+        remove
+      );
+
+      attachmentPreviewStrip.appendChild(
+        item
+      );
+    }
+  );
+}
+
+
+function addPendingAttachment(
+  file
+) {
+  if (!file) {
+    return;
+  }
+
+
+  const attachment = {
+    id:
+      crypto.randomUUID(),
+    file,
+    previewUrl:
+      URL.createObjectURL(file)
+  };
+
+
+  pendingAttachments.push(
+    attachment
+  );
+
+
+  renderPendingAttachments();
+}
 
 const DRAFT_STORAGE_KEY =
   "BlamP_message_draft";
@@ -4418,6 +4631,109 @@ confirmModal.addEventListener(
       confirmCancelBtn.click();
     }
 
+  }
+);
+
+attachmentBtn.addEventListener(
+  "click",
+  () => {
+    const opening =
+      attachmentMenu.classList.contains(
+        "hidden"
+      );
+
+
+    attachmentMenu.classList.toggle(
+      "hidden",
+      !opening
+    );
+
+
+    attachmentBtn.setAttribute(
+      "aria-expanded",
+      String(opening)
+    );
+  }
+);
+
+
+addPhotoBtn.addEventListener(
+  "click",
+  () => {
+    attachmentMenu.classList.add(
+      "hidden"
+    );
+
+    attachmentBtn.setAttribute(
+      "aria-expanded",
+      "false"
+    );
+
+    attachmentPhotoInput.click();
+  }
+);
+
+
+addFileBtn.addEventListener(
+  "click",
+  () => {
+    attachmentMenu.classList.add(
+      "hidden"
+    );
+
+    attachmentBtn.setAttribute(
+      "aria-expanded",
+      "false"
+    );
+
+    attachmentFileInput.click();
+  }
+);
+
+
+attachmentPhotoInput.addEventListener(
+  "change",
+  () => {
+    addPendingAttachment(
+      attachmentPhotoInput.files?.[0]
+    );
+
+    attachmentPhotoInput.value =
+      "";
+  }
+);
+
+
+attachmentFileInput.addEventListener(
+  "change",
+  () => {
+    addPendingAttachment(
+      attachmentFileInput.files?.[0]
+    );
+
+    attachmentFileInput.value =
+      "";
+  }
+);
+
+
+document.addEventListener(
+  "click",
+  (event) => {
+    if (
+      !event.target.closest(
+        ".attachment-menu-wrap"
+      )
+    ) {
+      attachmentMenu.classList.add(
+        "hidden"
+      );
+
+      attachmentBtn.setAttribute(
+        "aria-expanded",
+        "false"
+      );
+    }
   }
 );
 
