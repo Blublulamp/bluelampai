@@ -52,17 +52,21 @@ function getSessionToken(req) {
 }
 
 
-async function getTelegramUser(
-  sessionToken
+async function resolveAccount(
+  sessionToken,
+  historyInternalSecret
 ) {
   const response = await fetch(
-    `${HISTORY_API}/auth/session`,
+    `${HISTORY_API}/internal/resolve-account`,
     {
-      method: "GET",
+      method: "POST",
 
       headers: {
         "Authorization":
-          `Bearer ${sessionToken}`
+          `Bearer ${sessionToken}`,
+
+        "X-Internal-Secret":
+          historyInternalSecret
       }
     }
   );
@@ -83,7 +87,7 @@ async function getTelegramUser(
     const error =
       new Error(
         data?.error ||
-        "Could not verify Telegram session"
+        "Could not resolve API account"
       );
 
     error.status =
@@ -93,25 +97,25 @@ async function getTelegramUser(
   }
 
 
-  const telegramId =
+  const accountId =
     String(
-      data?.user?.id || ""
+      data?.account?.id || ""
     ).trim();
 
 
-  if (!telegramId) {
+  if (!accountId) {
     const error =
       new Error(
-        "Telegram user ID is missing"
+        "Resolved API account is missing"
       );
 
-    error.status = 401;
+    error.status = 502;
 
     throw error;
   }
 
 
-  return telegramId;
+  return accountId;
 }
 
 
@@ -183,7 +187,12 @@ export default async function handler(
         .ATTACHMENT_INTERNAL_SECRET ||
       ""
     ).trim();
-
+const historyInternalSecret =
+  String(
+    process.env
+      .INTERNAL_API_SECRET ||
+    ""
+  ).trim();
 
   if (
     !attachmentServiceUrl ||
@@ -198,13 +207,19 @@ export default async function handler(
         "Attachment service is not configured"
     });
   }
-
+if (!historyInternalSecret) {
+  return res.status(500).json({
+    error:
+      "Internal API secret is not configured"
+  });
+}
 
   try {
-    const telegramId =
-      await getTelegramUser(
-        sessionToken
-      );
+const accountId =
+  await resolveAccount(
+    sessionToken,
+    historyInternalSecret
+  );
 
 
     const response =
@@ -214,13 +229,13 @@ export default async function handler(
           method:
             req.method,
 
-          headers: {
-            "x-internal-secret":
-              internalSecret,
+         headers: {
+           "x-internal-secret":
+             internalSecret,
 
-            "x-telegram-id":
-              telegramId
-          }
+           "x-account-id":
+             accountId
+         }
         }
       );
 
