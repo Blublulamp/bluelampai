@@ -4,6 +4,12 @@ const HISTORY_API =
 const UPSTREAM_API =
   "https://ai.geraikita.com/v1/chat/completions";
 
+const ATTACHMENT_SERVICE_URL =
+  process.env.ATTACHMENT_SERVICE_URL;
+
+const ATTACHMENT_INTERNAL_SECRET =
+  process.env.ATTACHMENT_INTERNAL_SECRET;
+
 function isAllowedOrigin(req) {
   const origin =
     req.headers.origin || "";
@@ -173,7 +179,224 @@ if (!upstreamApiKey) {
     }
   });
 }
+const attachmentIds =
+  Array.isArray(
+    req.body?.attachment_ids
+  )
+    ? req.body.attachment_ids
+        .map(
+          (id) =>
+            String(id || "").trim()
+        )
+        .filter(Boolean)
+    : [];
 
+
+let accountId = null;
+
+
+if (attachmentIds.length > 0) {
+  if (
+    !ATTACHMENT_SERVICE_URL ||
+    !ATTACHMENT_INTERNAL_SECRET
+  ) {
+    return res.status(500).json({
+      error: {
+        message:
+          "Attachment service is not configured"
+      }
+    });
+  }
+
+
+  const accountResponse =
+    await fetch(
+      `${HISTORY_API}/internal/resolve-account`,
+      {
+        method: "POST",
+
+        headers: {
+          "Authorization":
+            `Bearer ${sessionToken}`,
+
+          "X-Internal-Secret":
+            process.env.INTERNAL_API_SECRET
+        }
+      }
+    );
+
+
+  let accountData = null;
+
+
+  try {
+    accountData =
+      await accountResponse.json();
+
+  } catch {
+    accountData = null;
+  }
+
+
+  if (
+    !accountResponse.ok ||
+    !accountData?.account?.id
+  ) {
+    return res
+      .status(
+        accountResponse.status || 502
+      )
+      .json({
+        error: {
+          message:
+            accountData?.error ||
+            "Could not resolve attachment account"
+        }
+      });
+  }
+
+
+  accountId =
+    String(
+      accountData.account.id
+    );
+}
+
+let upstreamMessages =
+  Array.isArray(req.body?.messages)
+    ? req.body.messages
+        .map(
+          (message) => ({
+            ...message
+          })
+        )
+    : [];
+
+
+if (
+  attachmentIds.length > 0 &&
+  upstreamMessages.length > 0
+) {
+  const imageParts = [];
+
+
+  for (const attachmentId of attachmentIds) {
+    const fileResponse =
+      await fetch(
+        `${ATTACHMENT_SERVICE_URL.replace(
+          /\/$/,
+          ""
+        )}/file?id=${encodeURIComponent(
+          attachmentId
+        )}`,
+        {
+          method: "GET",
+
+          headers: {
+            "x-internal-secret":
+              ATTACHMENT_INTERNAL_SECRET,
+
+            "x-account-id":
+              accountId
+          }
+        }
+      );
+
+
+    if (!fileResponse.ok) {
+      return res
+        .status(fileResponse.status)
+        .json({
+          error: {
+            message:
+              "Could not load image attachment"
+          }
+        });
+    }
+
+
+    const mimeType =
+      fileResponse.headers.get(
+        "content-type"
+      ) ||
+      "application/octet-stream";
+
+
+    if (
+      !mimeType.startsWith(
+        "image/"
+      )
+    ) {
+      return res.status(400).json({
+        error: {
+          message:
+            "Only image attachments are supported for AI input right now"
+        }
+      });
+    }
+
+
+    const imageBuffer =
+      Buffer.from(
+        await fileResponse.arrayBuffer()
+      );
+
+
+    const dataUrl =
+      `data:${mimeType};base64,${imageBuffer.toString(
+        "base64"
+      )}`;
+
+
+    imageParts.push({
+      type: "image_url",
+
+      image_url: {
+        url: dataUrl
+      }
+    });
+  }
+
+
+  const lastUserIndex =
+    upstreamMessages
+      .map(
+        (message) =>
+          message?.role
+      )
+      .lastIndexOf("user");
+
+
+  if (lastUserIndex >= 0) {
+    const originalContent =
+      upstreamMessages[
+        lastUserIndex
+      ].content;
+
+
+    upstreamMessages[
+      lastUserIndex
+    ] = {
+      ...upstreamMessages[
+        lastUserIndex
+      ],
+
+      content: [
+        {
+          type: "text",
+
+          text:
+            typeof originalContent ===
+            "string"
+              ? originalContent
+              : ""
+        },
+
+        ...imageParts
+      ]
+    };
+  }
+}
     /*
       Step 2:
       Only approved accounts reach
@@ -195,9 +418,16 @@ if (!upstreamApiKey) {
           "Accept": "text/event-stream"
         },
 
-        body: JSON.stringify({
-          ...req.body,
-          stream: true
+       body: JSON.stringify({
+         ...req.body,
+
+         messages:
+           upstreamMessages,
+
+         attachment_ids:
+           undefined,
+
+         stream: true
         })
       }
     );
