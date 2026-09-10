@@ -1963,6 +1963,267 @@ transition:
   gap: 3px;
 }
 
+.attachment-storage-button {
+  min-height: 34px;
+
+  padding:
+    0
+    10px;
+
+  display: flex;
+  align-items: center;
+
+  gap: 6px;
+
+  border:
+    1px solid
+    transparent;
+
+  border-radius: 8px;
+
+  background:
+    transparent;
+
+  color:
+    var(--text-secondary);
+
+  font-size: 12px;
+  font-weight: 500;
+
+  white-space: nowrap;
+}
+
+
+.attachment-storage-button:hover {
+  background:
+    var(--surface-hover);
+
+  color:
+    var(--text);
+}
+
+
+#attachmentStorageUsage {
+  color:
+    var(--text-muted);
+
+  font-size: 11px;
+}
+
+
+.attachment-storage-modal-card {
+  max-width: 560px;
+
+  padding:
+    20px;
+}
+
+
+.attachment-storage-subtitle {
+  margin-top: 4px;
+
+  color:
+    var(--text-muted);
+
+  font-size: 12px;
+}
+
+
+.attachment-storage-summary {
+  padding:
+    2px 0
+    16px;
+
+  border-bottom:
+    1px solid
+    var(--border);
+}
+
+
+.attachment-storage-summary-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+
+  gap: 12px;
+
+  margin-bottom: 10px;
+
+  color:
+    var(--text-secondary);
+
+  font-size: 12px;
+}
+
+
+.attachment-storage-bar {
+  width: 100%;
+  height: 7px;
+
+  overflow: hidden;
+
+  border-radius: 999px;
+
+  background:
+    var(--surface-active);
+}
+
+
+.attachment-storage-bar-fill {
+  width: 0%;
+  height: 100%;
+
+  border-radius: inherit;
+
+  background:
+    var(--text);
+}
+
+
+.attachment-storage-status {
+  margin-top: 9px;
+
+  color:
+    var(--text-muted);
+
+  font-size: 11px;
+  line-height: 1.45;
+}
+
+
+.attachment-storage-file-list {
+  max-height: 340px;
+
+  overflow-y: auto;
+
+  padding-top: 8px;
+}
+
+
+.attachment-storage-empty {
+  padding:
+    28px
+    10px;
+
+  color:
+    var(--text-muted);
+
+  font-size: 12px;
+
+  text-align: center;
+}
+
+
+.attachment-storage-file {
+  min-width: 0;
+
+  padding:
+    11px 0;
+
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+
+  gap: 12px;
+
+  border-bottom:
+    1px solid
+    var(--border);
+}
+
+
+.attachment-storage-file:last-child {
+  border-bottom: 0;
+}
+
+
+.attachment-storage-file-info {
+  min-width: 0;
+
+  flex: 1;
+}
+
+
+.attachment-storage-file-name {
+  overflow: hidden;
+
+  color:
+    var(--text);
+
+  font-size: 12px;
+  font-weight: 600;
+
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+
+.attachment-storage-file-meta {
+  margin-top: 3px;
+
+  color:
+    var(--text-muted);
+
+  font-size: 10.5px;
+}
+
+
+.attachment-storage-delete {
+  flex: 0 0 auto;
+
+  padding:
+    6px
+    8px;
+
+  border-radius: 7px;
+
+  background:
+    transparent;
+
+  color:
+    #ff8f8f;
+
+  font-size: 11px;
+  font-weight: 600;
+}
+
+
+.attachment-storage-delete:hover {
+  background:
+    rgba(
+      255,
+      90,
+      90,
+      0.09
+    );
+}
+
+
+.attachment-storage-delete:disabled {
+  opacity: 0.55;
+
+  cursor: default;
+}
+
+
+@media (max-width: 650px) {
+
+  .attachment-storage-button {
+    padding:
+      0
+      7px;
+  }
+
+
+  .attachment-storage-button {
+    font-size: 0;
+  }
+
+
+  #attachmentStorageUsage {
+    font-size: 10px;
+  }
+}
 
 .header-model-select {
   height: 36px;
