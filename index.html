@@ -218,6 +218,19 @@
 
 <div class="topbar-actions">
 
+  <button
+    id="attachmentStorageBtn"
+    class="attachment-storage-button"
+    type="button"
+    aria-label="Manage attachment storage"
+  >
+    Storage
+    <span id="attachmentStorageUsage">
+      0 MB / 200 MB
+    </span>
+  </button>
+
+
   <div class="model-picker">
     <select
       id="headerModelSelect"
@@ -482,6 +495,90 @@
 
 </div>
 
+<div
+  id="attachmentStorageModal"
+  class="modal hidden"
+  role="dialog"
+  aria-modal="true"
+  aria-labelledby="attachmentStorageTitle"
+>
+
+  <div class="modal-card attachment-storage-modal-card">
+
+    <div class="modal-header">
+
+      <div>
+        <h2 id="attachmentStorageTitle">
+          Storage
+        </h2>
+
+        <p class="attachment-storage-subtitle">
+          Attachment storage for this API
+        </p>
+      </div>
+
+
+      <button
+        id="closeAttachmentStorageBtn"
+        class="icon-button"
+        type="button"
+        aria-label="Close storage"
+      >
+        ✕
+      </button>
+
+    </div>
+
+
+    <div class="attachment-storage-summary">
+
+      <div class="attachment-storage-summary-row">
+
+        <span id="attachmentStorageUsed">
+          0 MB used
+        </span>
+
+        <span>
+          200 MB total
+        </span>
+
+      </div>
+
+
+      <div class="attachment-storage-bar">
+
+        <div
+          id="attachmentStorageBarFill"
+          class="attachment-storage-bar-fill"
+        ></div>
+
+      </div>
+
+
+      <p
+        id="attachmentStorageStatus"
+        class="attachment-storage-status"
+      >
+        Images up to 20 MB · Other files up to 50 MB
+      </p>
+
+    </div>
+
+
+    <div
+      id="attachmentStorageFileList"
+      class="attachment-storage-file-list"
+    >
+
+      <div class="attachment-storage-empty">
+        No stored files.
+      </div>
+
+    </div>
+
+  </div>
+
+</div>
 
 <div
   id="settingsModal"
