@@ -4330,10 +4330,27 @@ headers: {
   "Content-Type": "application/json"
 },
 
-      body: JSON.stringify({
-        model: currentModel,
-        messages: messages
-      }),
+body: JSON.stringify({
+  model: currentModel,
+  messages: messages,
+
+  attachment_ids:
+    retryLastUser
+      ? []
+      : pendingAttachments
+          .filter(
+            (attachment) =>
+              attachment.status ===
+                "uploaded" &&
+              attachment.storageId &&
+              attachment.file.type
+                .startsWith("image/")
+          )
+          .map(
+            (attachment) =>
+              attachment.storageId
+          )
+}),
 
       signal:
         activeChatController.signal
