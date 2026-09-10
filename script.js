@@ -3995,12 +3995,38 @@ if (!messages.length) {
 
 } else {
 
-    messages.forEach((message) => {
-      addMessage(
-        message.role,
-        message.content
-      );
-    });
+    savedMessages.forEach(
+      (message) => {
+        addMessage(
+          message.role,
+          message.content,
+          false,
+          Array.isArray(
+            message.attachments
+          )
+            ? message.attachments.map(
+                (attachment) => ({
+                  storageId:
+                    attachment.id,
+
+                  name:
+                    attachment.name ||
+                    "Attachment",
+
+                  type:
+                    attachment.type ||
+                    "",
+
+                  size:
+                    Number(
+                      attachment.size || 0
+                    )
+                })
+              )
+            : []
+        );
+      }
+    );
   }
 
 
@@ -4155,42 +4181,90 @@ try {
 return data.chat;
 }
 
-async function saveCloudMessage(role, content) {
+async function saveCloudMessage(
+  role,
+  content,
+  attachments = []
+) {
   if (!currentChatId) {
     throw new Error("No active chat");
   }
+
+
+  const savedAttachments =
+    Array.isArray(attachments)
+      ? attachments
+          .filter(
+            (attachment) =>
+              attachment?.storageId
+          )
+          .map(
+            (attachment) => ({
+              id:
+                attachment.storageId,
+
+              name:
+                attachment.name ||
+                "Attachment",
+
+              type:
+                attachment.type ||
+                "",
+
+              size:
+                Number(
+                  attachment.size || 0
+                )
+            })
+          )
+      : [];
+
 
   const response = await fetch(
     "/api/history/messages",
     {
       method: "POST",
 
-headers: {
-  "Content-Type": "application/json"
-},
+      headers: {
+        "Content-Type":
+          "application/json"
+      },
+
       body: JSON.stringify({
-        chat_id: currentChatId,
-        role: role,
-        content: content
+        chat_id:
+          currentChatId,
+
+        role,
+
+        content,
+
+        attachments:
+          savedAttachments
       })
     }
   );
 
+
   let data;
+
 
   try {
     data = await response.json();
+
   } catch {
     data = null;
   }
 
+
   if (!response.ok) {
     throw new Error(
-      data?.error || "Could not save message"
+      data?.error ||
+        "Could not save message"
     );
   }
 
-  return true;
+
+  return data?.message || true;
 }
 
 function updateSendButtonState() {
@@ -4536,7 +4610,8 @@ if (!retryLastUser) {
   try {
     await saveCloudMessage(
       "user",
-      userText
+      userText,
+      outgoingAttachments
     );
 
   } catch (error) {
