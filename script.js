@@ -278,6 +278,226 @@ let sendInFlight = false;
 let hasActiveApi = false;
 let pendingAttachments = [];
 
+const PENDING_ATTACHMENT_STORAGE_KEY =
+  "BlamP_pending_attachments";
+
+let pendingAttachmentsRestored = false;
+
+
+function savePendingAttachmentState() {
+  const saved =
+    pendingAttachments
+      .filter(
+        (attachment) =>
+          attachment.status ===
+            "uploaded" &&
+          attachment.storageId
+      )
+      .map(
+        (attachment) => ({
+          storageId:
+            attachment.storageId,
+
+          name:
+            attachment.file.name,
+
+          type:
+            attachment.file.type ||
+            "",
+
+          size:
+            Number(
+              attachment.file.size
+            ) || 0
+        })
+      );
+
+  sessionStorage.setItem(
+    PENDING_ATTACHMENT_STORAGE_KEY,
+    JSON.stringify(saved)
+  );
+}
+
+
+async function restorePendingAttachmentsFromSession() {
+  if (pendingAttachmentsRestored) {
+    return;
+  }
+
+  pendingAttachmentsRestored = true;
+
+
+  let saved = [];
+
+  try {
+    saved = JSON.parse(
+      sessionStorage.getItem(
+        PENDING_ATTACHMENT_STORAGE_KEY
+      ) || "[]"
+    );
+
+  } catch {
+    saved = [];
+  }
+
+
+  if (
+    !Array.isArray(saved) ||
+    !saved.length
+  ) {
+    return;
+  }
+
+
+  try {
+    const response = await fetch(
+      "/api/attachments/files",
+      {
+        method: "GET"
+      }
+    );
+
+
+    const data =
+      await response.json();
+
+
+    if (
+      !response.ok ||
+      data?.ok === false
+    ) {
+      throw new Error(
+        data?.error?.message ||
+        data?.error ||
+        "Could not restore attachments."
+      );
+    }
+
+
+    const serverFiles =
+      Array.isArray(data?.files)
+        ? data.files
+        : [];
+
+
+    const serverById =
+      new Map(
+        serverFiles.map(
+          (file) => [
+            String(file.id),
+            file
+          ]
+        )
+      );
+
+
+    const existingStorageIds =
+      new Set(
+        pendingAttachments
+          .map(
+            (attachment) =>
+              attachment.storageId
+          )
+          .filter(Boolean)
+      );
+
+
+    for (
+      const savedAttachment
+      of saved
+    ) {
+      const storageId =
+        String(
+          savedAttachment
+            ?.storageId || ""
+        );
+
+
+      if (
+        !storageId ||
+        existingStorageIds.has(
+          storageId
+        )
+      ) {
+        continue;
+      }
+
+
+      const serverFile =
+        serverById.get(
+          storageId
+        );
+
+
+      if (!serverFile) {
+        continue;
+      }
+
+
+      const type =
+        String(
+          serverFile.mime_type ||
+          savedAttachment.type ||
+          ""
+        );
+
+
+      const file = {
+        name:
+          String(
+            serverFile.filename ||
+            savedAttachment.name ||
+            "Attachment"
+          ),
+
+        type,
+
+        size:
+          Number(
+            serverFile.size ??
+            savedAttachment.size
+          ) || 0
+      };
+
+
+      pendingAttachments.push({
+        id:
+          `restored:${storageId}`,
+
+        file,
+
+        previewUrl:
+          type.startsWith(
+            "image/"
+          )
+            ? `/api/attachments/file?id=${encodeURIComponent(
+                storageId
+              )}`
+            : "",
+
+        storageId,
+
+        status:
+          "uploaded",
+
+        usage:
+          data?.usage || null
+      });
+    }
+
+
+    savePendingAttachmentState();
+    renderPendingAttachments();
+
+  } catch (error) {
+    console.error(
+      "Could not restore pending attachments:",
+      error
+    );
+  }
+}
+
+
 const MAX_IMAGE_ATTACHMENT_BYTES =
   20_000_000;
 
@@ -516,18 +736,24 @@ function renderPendingAttachments() {
           }
 
 
-          URL.revokeObjectURL(
-            attachment.previewUrl
-          );
+         if (
+           attachment.previewUrl
+              ?.startsWith("blob:")
+         ) {
+           URL.revokeObjectURL(
+             attachment.previewUrl
+           );
+         }
 
-          pendingAttachments =
-            pendingAttachments.filter(
-              (item) =>
-                item.id !==
-                attachment.id
-            );
+         pendingAttachments =
+           pendingAttachments.filter(
+             (item) =>
+               item.id !==
+               attachment.id
+           );
 
-          renderPendingAttachments();
+         savePendingAttachmentState();
+         renderPendingAttachments();
         }
       );
 
@@ -610,10 +836,11 @@ async function uploadPendingAttachment(
   attachment.status =
     "uploaded";
 
-  attachment.usage =
-    data.usage || null;
+attachment.usage =
+  data.usage || null;
 
-  renderPendingAttachments();
+savePendingAttachmentState();
+renderPendingAttachments();
 }
 
 
@@ -1499,6 +1726,8 @@ function showLogin() {
 function showChat() {
   loginScreen.classList.add("hidden");
   chatApp.classList.remove("hidden");
+
+  restorePendingAttachmentsFromSession();
 }
 
 async function handleTelegramOidcResult(
@@ -1987,6 +2216,15 @@ apiKeyInput.value = "";
 
 
 clearMessageDraft();
+
+sessionStorage.removeItem(
+  PENDING_ATTACHMENT_STORAGE_KEY
+);
+
+pendingAttachments = [];
+pendingAttachmentsRestored = false;
+
+renderPendingAttachments();
 
 messageInput.value = "";
 
