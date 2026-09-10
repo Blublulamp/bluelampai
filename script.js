@@ -560,6 +560,331 @@ function formatAttachmentSize(bytes) {
   ).toFixed(2)} MB`;
 }
 
+const MAX_ACCOUNT_STORAGE_BYTES =
+  200_000_000;
+
+
+function updateAttachmentStorageSummary(
+  usage
+) {
+  const usedBytes =
+    Number(
+      usage?.used_bytes
+    ) || 0;
+
+  const limitBytes =
+    Number(
+      usage?.limit_bytes
+    ) ||
+    MAX_ACCOUNT_STORAGE_BYTES;
+
+  const percent =
+    limitBytes > 0
+      ? Math.min(
+          100,
+          Math.max(
+            0,
+            (
+              usedBytes /
+              limitBytes
+            ) * 100
+          )
+        )
+      : 0;
+
+
+  attachmentStorageUsage.textContent =
+    `${formatAttachmentSize(
+      usedBytes
+    )} / 200 MB`;
+
+
+  attachmentStorageUsed.textContent =
+    `${formatAttachmentSize(
+      usedBytes
+    )} used`;
+
+
+  attachmentStorageBarFill.style.width =
+    `${percent}%`;
+
+
+  if (
+    usedBytes >=
+    MAX_ACCOUNT_STORAGE_BYTES
+  ) {
+    attachmentStorageStatus.textContent =
+      "Storage is full. Delete files to upload more.";
+
+  } else if (
+    usedBytes >=
+    190_000_000
+  ) {
+    attachmentStorageStatus.textContent =
+      "Storage is almost full.";
+
+  } else if (
+    usedBytes >=
+    160_000_000
+  ) {
+    attachmentStorageStatus.textContent =
+      "Attachment storage is getting full.";
+
+  } else {
+    attachmentStorageStatus.textContent =
+      "Images up to 20 MB · Other files up to 50 MB";
+  }
+}
+
+
+function removePendingAttachmentByStorageId(
+  storageId
+) {
+  let changed = false;
+
+
+  pendingAttachments =
+    pendingAttachments.filter(
+      (attachment) => {
+        if (
+          String(
+            attachment.storageId ||
+            ""
+          ) !==
+          String(storageId)
+        ) {
+          return true;
+        }
+
+
+        if (
+          attachment.previewUrl
+            ?.startsWith("blob:")
+        ) {
+          URL.revokeObjectURL(
+            attachment.previewUrl
+          );
+        }
+
+
+        changed = true;
+
+        return false;
+      }
+    );
+
+
+  if (changed) {
+    savePendingAttachmentState();
+    renderPendingAttachments();
+  }
+}
+
+
+function renderAttachmentStorageFiles(
+  files
+) {
+  attachmentStorageFileList.replaceChildren();
+
+
+  if (
+    !Array.isArray(files) ||
+    files.length === 0
+  ) {
+    const empty =
+      document.createElement(
+        "div"
+      );
+
+    empty.className =
+      "attachment-storage-empty";
+
+    empty.textContent =
+      "No stored files.";
+
+    attachmentStorageFileList.appendChild(
+      empty
+    );
+
+    return;
+  }
+
+
+  files.forEach(
+    (file) => {
+      const row =
+        document.createElement(
+          "div"
+        );
+
+      row.className =
+        "attachment-storage-file";
+
+
+      const info =
+        document.createElement(
+          "div"
+        );
+
+      info.className =
+        "attachment-storage-file-info";
+
+
+      const name =
+        document.createElement(
+          "div"
+        );
+
+      name.className =
+        "attachment-storage-file-name";
+
+      name.textContent =
+        file.filename ||
+        "Attachment";
+
+
+      const meta =
+        document.createElement(
+          "div"
+        );
+
+      meta.className =
+        "attachment-storage-file-meta";
+
+      meta.textContent =
+        `${formatAttachmentSize(
+          file.size
+        )} · ${
+          file.mime_type ||
+          "File"
+        }`;
+
+
+      const deleteBtn =
+        document.createElement(
+          "button"
+        );
+
+      deleteBtn.type =
+        "button";
+
+      deleteBtn.className =
+        "attachment-storage-delete";
+
+      deleteBtn.textContent =
+        "Delete";
+
+
+      deleteBtn.addEventListener(
+        "click",
+        async () => {
+          deleteBtn.disabled =
+            true;
+
+          deleteBtn.textContent =
+            "Deleting...";
+
+
+          try {
+            const result =
+              await deleteStoredAttachment(
+                file.id
+              );
+
+
+            removePendingAttachmentByStorageId(
+              file.id
+            );
+
+
+            updateAttachmentStorageSummary(
+              result?.usage
+            );
+
+
+            await loadAttachmentStorage();
+
+          } catch (error) {
+            deleteBtn.disabled =
+              false;
+
+            deleteBtn.textContent =
+              "Delete";
+
+
+            showToast(
+              error.message ||
+                "Could not delete attachment.",
+              "error"
+            );
+          }
+        }
+      );
+
+
+      info.append(
+        name,
+        meta
+      );
+
+      row.append(
+        info,
+        deleteBtn
+      );
+
+      attachmentStorageFileList.appendChild(
+        row
+      );
+    }
+  );
+}
+
+
+async function loadAttachmentStorage() {
+  const response = await fetch(
+    "/api/attachments/files",
+    {
+      method: "GET"
+    }
+  );
+
+
+  let data = null;
+
+
+  try {
+    data =
+      await response.json();
+
+  } catch {
+    data = null;
+  }
+
+
+  if (
+    !response.ok ||
+    data?.ok === false
+  ) {
+    throw new Error(
+      data?.error?.message ||
+      data?.error ||
+      `Could not load storage (${response.status}).`
+    );
+  }
+
+
+  updateAttachmentStorageSummary(
+    data?.usage
+  );
+
+
+  renderAttachmentStorageFiles(
+    data?.files
+  );
+
+
+  return data;
+}
 
 async function deleteStoredAttachment(
   attachmentId
@@ -755,8 +1080,13 @@ function renderPendingAttachments() {
             renderPendingAttachments();
 
             try {
-              await deleteStoredAttachment(
-                attachment.storageId
+              const result =
+                await deleteStoredAttachment(
+                  attachment.storageId
+                );
+
+              updateAttachmentStorageSummary(
+                result?.usage
               );
 
             } catch (error) {
@@ -870,14 +1200,18 @@ async function uploadPendingAttachment(
   }
 
 
-  attachment.storageId =
-    data.attachment.id;
+attachment.storageId =
+  data.attachment.id;
 
-  attachment.status =
-    "uploaded";
+attachment.status =
+  "uploaded";
 
 attachment.usage =
   data.usage || null;
+
+updateAttachmentStorageSummary(
+  data.usage
+);
 
 savePendingAttachmentState();
 renderPendingAttachments();
@@ -1768,6 +2102,15 @@ function showChat() {
   chatApp.classList.remove("hidden");
 
   restorePendingAttachmentsFromSession();
+
+  loadAttachmentStorage().catch(
+    (error) => {
+      console.error(
+        "Could not load attachment storage:",
+        error
+      );
+    }
+  );
 }
 
 async function handleTelegramOidcResult(
@@ -5153,6 +5496,66 @@ confirmModal.addEventListener(
       confirmCancelBtn.click();
     }
 
+  }
+);
+
+attachmentStorageBtn.addEventListener(
+  "click",
+  async () => {
+    attachmentStorageModal.classList.remove(
+      "hidden"
+    );
+
+
+    attachmentStorageFileList.innerHTML = `
+      <div class="attachment-storage-empty">
+        Loading...
+      </div>
+    `;
+
+
+    try {
+      await loadAttachmentStorage();
+
+    } catch (error) {
+      attachmentStorageFileList.innerHTML = `
+        <div class="attachment-storage-empty">
+          Could not load storage.
+        </div>
+      `;
+
+
+      showToast(
+        error.message ||
+          "Could not load storage.",
+        "error"
+      );
+    }
+  }
+);
+
+
+closeAttachmentStorageBtn.addEventListener(
+  "click",
+  () => {
+    attachmentStorageModal.classList.add(
+      "hidden"
+    );
+  }
+);
+
+
+attachmentStorageModal.addEventListener(
+  "click",
+  (event) => {
+    if (
+      event.target ===
+      attachmentStorageModal
+    ) {
+      attachmentStorageModal.classList.add(
+        "hidden"
+      );
+    }
   }
 );
 
