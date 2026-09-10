@@ -1144,6 +1144,9 @@ function renderPendingAttachments() {
       );
     }
   );
+
+
+  updateSendButtonState();
 }
 
 
@@ -3337,9 +3340,150 @@ function addAssistantRetryAction(
   );
 }
 
+function renderSentMessageAttachments(
+  bubble,
+  attachments
+) {
+  if (
+    !Array.isArray(attachments) ||
+    attachments.length === 0
+  ) {
+    return;
+  }
 
 
-function addMessage(role, content, isError = false) {
+  const container =
+    document.createElement(
+      "div"
+    );
+
+  container.className =
+    "sent-message-attachments";
+
+
+  attachments.forEach(
+    (attachment) => {
+      const item =
+        document.createElement(
+          "div"
+        );
+
+      item.className =
+        "sent-message-attachment";
+
+
+      const type =
+        String(
+          attachment.type || ""
+        );
+
+      const storageId =
+        String(
+          attachment.storageId || ""
+        );
+
+
+      if (
+        type.startsWith("image/") &&
+        storageId
+      ) {
+        const image =
+          document.createElement(
+            "img"
+          );
+
+        image.className =
+          "sent-message-attachment-image";
+
+        image.src =
+          `/api/attachments/file?id=${encodeURIComponent(
+            storageId
+          )}`;
+
+        image.alt =
+          attachment.name ||
+          "Attached image";
+
+        item.appendChild(image);
+
+      } else {
+        const fileIcon =
+          document.createElement(
+            "div"
+          );
+
+        fileIcon.className =
+          "sent-message-file-icon";
+
+        fileIcon.textContent =
+          "FILE";
+
+
+        const fileInfo =
+          document.createElement(
+            "div"
+          );
+
+        fileInfo.className =
+          "sent-message-file-info";
+
+
+        const fileName =
+          document.createElement(
+            "div"
+          );
+
+        fileName.className =
+          "sent-message-file-name";
+
+        fileName.textContent =
+          attachment.name ||
+          "Attachment";
+
+
+        const fileType =
+          document.createElement(
+            "div"
+          );
+
+        fileType.className =
+          "sent-message-file-type";
+
+        fileType.textContent =
+          type ||
+          "File";
+
+
+        fileInfo.append(
+          fileName,
+          fileType
+        );
+
+        item.append(
+          fileIcon,
+          fileInfo
+        );
+      }
+
+
+      container.appendChild(
+        item
+      );
+    }
+  );
+
+
+  bubble.prepend(
+    container
+  );
+}
+
+function addMessage(
+  role,
+  content,
+  isError = false,
+  attachments = []
+) {
   removeWelcomeMessage();
 
   const messageWrapper =
@@ -3375,12 +3519,25 @@ function addMessage(role, content, isError = false) {
   }
 
 
+if (content) {
   renderMessageContent(
     bubble,
     content,
     role,
     isError
   );
+}
+
+
+if (
+  role === "user" &&
+  attachments.length > 0
+) {
+  renderSentMessageAttachments(
+    bubble,
+    attachments
+  );
+}
 
 
   messageWrapper.appendChild(
@@ -4043,12 +4200,33 @@ function updateSendButtonState() {
   }
 
 
+  const hasBusyAttachment =
+    pendingAttachments.some(
+      (attachment) =>
+        attachment.status ===
+          "uploading" ||
+        attachment.status ===
+          "deleting"
+    );
+
+
+  const hasReadyAttachment =
+    pendingAttachments.some(
+      (attachment) =>
+        attachment.status ===
+          "uploaded" &&
+        attachment.storageId
+    );
+
+
   sendBtn.disabled =
     sendInFlight ||
-    !messageInput.value.trim();
+    hasBusyAttachment ||
+    (
+      !messageInput.value.trim() &&
+      !hasReadyAttachment
+    );
 }
-
-
 
 function setLoading(isLoading) {
   isGenerating = isLoading;
@@ -4139,18 +4317,73 @@ async function sendMessage(
   }
 
 
-  let userText =
-    retryLastUser
-      ? String(
-          existingRetryContext
-            ?.userText || ""
+let userText =
+  retryLastUser
+    ? String(
+        existingRetryContext
+          ?.userText || ""
+      )
+    : messageInput.value.trim();
+
+
+const outgoingAttachments =
+  retryLastUser
+    ? Array.isArray(
+        existingRetryContext
+          ?.attachments
+      )
+      ? existingRetryContext
+          .attachments
+      : []
+    : pendingAttachments
+        .filter(
+          (attachment) =>
+            attachment.status ===
+              "uploaded" &&
+            attachment.storageId
         )
-      : messageInput.value.trim();
+        .map(
+          (attachment) => ({
+            storageId:
+              attachment.storageId,
+
+            name:
+              attachment.file.name,
+
+            type:
+              attachment.file.type ||
+              "",
+
+            size:
+              Number(
+                attachment.file.size
+              ) || 0
+          })
+        );
 
 
-  if (!userText) {
-    return;
-  }
+const attachmentStillUploading =
+  !retryLastUser &&
+  pendingAttachments.some(
+    (attachment) =>
+      attachment.status ===
+        "uploading" ||
+      attachment.status ===
+        "deleting"
+  );
+
+
+if (attachmentStillUploading) {
+  return;
+}
+
+
+if (
+  !userText &&
+  outgoingAttachments.length === 0
+) {
+  return;
+}
 
 
   if (retryLastUser) {
@@ -4239,8 +4472,55 @@ async function sendMessage(
 if (!retryLastUser) {
   addMessage(
     "user",
-    userText
+    userText,
+    false,
+    outgoingAttachments
   );
+
+
+  const sentStorageIds =
+    new Set(
+      outgoingAttachments.map(
+        (attachment) =>
+          String(
+            attachment.storageId
+          )
+      )
+    );
+
+
+  pendingAttachments =
+    pendingAttachments.filter(
+      (attachment) => {
+        if (
+          !sentStorageIds.has(
+            String(
+              attachment.storageId ||
+              ""
+            )
+          )
+        ) {
+          return true;
+        }
+
+
+        if (
+          attachment.previewUrl
+            ?.startsWith("blob:")
+        ) {
+          URL.revokeObjectURL(
+            attachment.previewUrl
+          );
+        }
+
+
+        return false;
+      }
+    );
+
+
+  savePendingAttachmentState();
+  renderPendingAttachments();
 
   clearMessageDraft();
 }
@@ -4278,7 +4558,10 @@ const retryContext =
         messageCount:
           messages.length,
 
-        userText
+        userText,
+
+        attachments:
+          outgoingAttachments
       };
 
 
@@ -4334,22 +4617,21 @@ body: JSON.stringify({
   model: currentModel,
   messages: messages,
 
-  attachment_ids:
-    retryLastUser
-      ? []
-      : pendingAttachments
-          .filter(
-            (attachment) =>
-              attachment.status ===
-                "uploaded" &&
-              attachment.storageId &&
-              attachment.file.type
-                .startsWith("image/")
-          )
-          .map(
-            (attachment) =>
-              attachment.storageId
-          )
+attachment_ids:
+  outgoingAttachments
+    .filter(
+      (attachment) =>
+        attachment.storageId &&
+        String(
+          attachment.type || ""
+        ).startsWith(
+          "image/"
+        )
+    )
+    .map(
+      (attachment) =>
+        attachment.storageId
+    )
 }),
 
       signal:
