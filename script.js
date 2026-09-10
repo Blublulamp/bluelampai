@@ -261,6 +261,46 @@ const attachmentPreviewStrip =
     "attachmentPreviewStrip"
   );
 
+const attachmentStorageBtn =
+  document.getElementById(
+    "attachmentStorageBtn"
+  );
+
+const attachmentStorageUsage =
+  document.getElementById(
+    "attachmentStorageUsage"
+  );
+
+const attachmentStorageModal =
+  document.getElementById(
+    "attachmentStorageModal"
+  );
+
+const closeAttachmentStorageBtn =
+  document.getElementById(
+    "closeAttachmentStorageBtn"
+  );
+
+const attachmentStorageUsed =
+  document.getElementById(
+    "attachmentStorageUsed"
+  );
+
+const attachmentStorageBarFill =
+  document.getElementById(
+    "attachmentStorageBarFill"
+  );
+
+const attachmentStorageStatus =
+  document.getElementById(
+    "attachmentStorageStatus"
+  );
+
+const attachmentStorageFileList =
+  document.getElementById(
+    "attachmentStorageFileList"
+  );
+
 const scrollToLatestBtn =
   document.getElementById(
     "scrollToLatestBtn"
