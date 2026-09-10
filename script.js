@@ -278,6 +278,66 @@ let sendInFlight = false;
 let hasActiveApi = false;
 let pendingAttachments = [];
 
+const MAX_IMAGE_ATTACHMENT_BYTES =
+  20_000_000;
+
+const MAX_FILE_ATTACHMENT_BYTES =
+  50_000_000;
+
+
+function formatAttachmentSize(bytes) {
+  const size = Number(bytes) || 0;
+
+  if (size < 1_000_000) {
+    return `${Math.max(
+      1,
+      Math.round(size / 1000)
+    )} KB`;
+  }
+
+  return `${(
+    size / 1_000_000
+  ).toFixed(2)} MB`;
+}
+
+
+async function deleteStoredAttachment(
+  attachmentId
+) {
+  const response = await fetch(
+    `/api/attachments/file?id=${encodeURIComponent(
+      attachmentId
+    )}`,
+    {
+      method: "DELETE"
+    }
+  );
+
+
+  let data = null;
+
+  try {
+    data = await response.json();
+  } catch {
+    // Keep the normal HTTP error below.
+  }
+
+
+  if (
+    !response.ok ||
+    data?.ok === false
+  ) {
+    throw new Error(
+      data?.error?.message ||
+      data?.error ||
+      `Could not delete attachment (${response.status}).`
+    );
+  }
+
+
+  return data;
+}
+
 
 function renderPendingAttachments() {
   attachmentPreviewStrip.replaceChildren();
@@ -362,9 +422,39 @@ function renderPendingAttachments() {
       type.className =
         "attachment-preview-type";
 
-      type.textContent =
-        attachment.file.type ||
-        "File";
+
+      if (
+        attachment.status ===
+        "uploading"
+      ) {
+        type.textContent =
+          `Uploading · ${formatAttachmentSize(
+            attachment.file.size
+          )}`;
+
+      } else if (
+        attachment.status ===
+        "deleting"
+      ) {
+        type.textContent =
+          "Removing...";
+
+      } else if (
+        attachment.status ===
+        "error"
+      ) {
+        type.textContent =
+          "Upload failed";
+
+      } else {
+        type.textContent =
+          `${
+            attachment.file.type ||
+            "File"
+          } · ${formatAttachmentSize(
+            attachment.file.size
+          )}`;
+      }
 
 
       const remove =
@@ -381,6 +471,12 @@ function renderPendingAttachments() {
       remove.textContent =
         "×";
 
+      remove.disabled =
+        attachment.status ===
+          "uploading" ||
+        attachment.status ===
+          "deleting";
+
       remove.setAttribute(
         "aria-label",
         `Remove ${attachment.file.name}`
@@ -389,7 +485,37 @@ function renderPendingAttachments() {
 
       remove.addEventListener(
         "click",
-        () => {
+        async () => {
+          if (
+            attachment.storageId
+          ) {
+            attachment.status =
+              "deleting";
+
+            renderPendingAttachments();
+
+            try {
+              await deleteStoredAttachment(
+                attachment.storageId
+              );
+
+            } catch (error) {
+              attachment.status =
+                "uploaded";
+
+              renderPendingAttachments();
+
+              showToast(
+                error.message ||
+                  "Could not remove attachment.",
+                "error"
+              );
+
+              return;
+            }
+          }
+
+
           URL.revokeObjectURL(
             attachment.previewUrl
           );
@@ -425,7 +551,73 @@ function renderPendingAttachments() {
 }
 
 
-function addPendingAttachment(
+async function uploadPendingAttachment(
+  attachment
+) {
+  const form =
+    new FormData();
+
+  form.append(
+    "file",
+    attachment.file
+  );
+
+
+  const headers = {};
+
+  if (currentChatId) {
+    headers["x-chat-id"] =
+      currentChatId;
+  }
+
+
+  const response = await fetch(
+    "/api/attachments/upload",
+    {
+      method: "POST",
+      headers,
+      body: form
+    }
+  );
+
+
+  let data = null;
+
+  try {
+    data =
+      await response.json();
+  } catch {
+    // Keep the normal HTTP error below.
+  }
+
+
+  if (
+    !response.ok ||
+    data?.ok === false ||
+    !data?.attachment?.id
+  ) {
+    throw new Error(
+      data?.error?.message ||
+      data?.error ||
+      `Could not upload attachment (${response.status}).`
+    );
+  }
+
+
+  attachment.storageId =
+    data.attachment.id;
+
+  attachment.status =
+    "uploaded";
+
+  attachment.usage =
+    data.usage || null;
+
+  renderPendingAttachments();
+}
+
+
+async function addPendingAttachment(
   file
 ) {
   if (!file) {
@@ -433,12 +625,46 @@ function addPendingAttachment(
   }
 
 
+  const isImage =
+    file.type.startsWith(
+      "image/"
+    );
+
+  const maxBytes =
+    isImage
+      ? MAX_IMAGE_ATTACHMENT_BYTES
+      : MAX_FILE_ATTACHMENT_BYTES;
+
+
+  if (file.size > maxBytes) {
+    showToast(
+      isImage
+        ? "Images can be up to 20 MB."
+        : "Files can be up to 50 MB.",
+      "error"
+    );
+
+    return;
+  }
+
+
   const attachment = {
     id:
       crypto.randomUUID(),
+
     file,
+
     previewUrl:
-      URL.createObjectURL(file)
+      URL.createObjectURL(
+        file
+      ),
+
+    storageId: null,
+
+    status:
+      "uploading",
+
+    usage: null
   };
 
 
@@ -446,8 +672,26 @@ function addPendingAttachment(
     attachment
   );
 
-
   renderPendingAttachments();
+
+
+  try {
+    await uploadPendingAttachment(
+      attachment
+    );
+
+  } catch (error) {
+    attachment.status =
+      "error";
+
+    renderPendingAttachments();
+
+    showToast(
+      error.message ||
+        "Could not upload attachment.",
+      "error"
+    );
+  }
 }
 
 const DRAFT_STORAGE_KEY =
