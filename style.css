@@ -4507,3 +4507,40 @@ body.light-theme #themeToggleBtn .theme-moon {
     height: 16px;
   }
 }
+/* Paginated chat history */
+
+.history-page-control {
+  display: flex;
+  justify-content: center;
+  width: 100%;
+  margin: 0 auto 20px;
+  padding: 4px;
+}
+
+.history-page-control button {
+  min-height: 44px;
+  max-width: 100%;
+  padding: 9px 14px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: transparent;
+  color: var(--text-secondary);
+  font: inherit;
+  font-size: 13px;
+  white-space: normal;
+  cursor: pointer;
+}
+
+.history-page-control button:enabled:hover {
+  background: var(--surface-hover);
+  color: var(--text);
+}
+
+.history-page-control button:disabled {
+  cursor: default;
+}
+
+.history-page-control button:focus-visible {
+  outline: 2px solid var(--text-secondary);
+  outline-offset: 2px;
+}
