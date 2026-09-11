@@ -104,9 +104,29 @@ if (
       }
 
 
-      workerUrl =
+      const historyUrl = new URL(
         `${HISTORY_API}/messages/` +
-        encodeURIComponent(chatId);
+        encodeURIComponent(chatId)
+      );
+
+      for (const parameter of ["limit", "before"]) {
+        const value = req.query?.[parameter];
+
+        if (value !== undefined) {
+          if (typeof value !== "string") {
+            return res.status(400).json({
+              error: `Invalid ${parameter}`
+            });
+          }
+
+          historyUrl.searchParams.set(
+            parameter,
+            value
+          );
+        }
+      }
+
+      workerUrl = historyUrl.toString();
     }
 
 
