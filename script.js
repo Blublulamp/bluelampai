@@ -3913,7 +3913,7 @@ let historyPageState = null;
 async function loadCloudMessages(chatId, before = null) {
   const query = new URLSearchParams({
     chat_id: String(chatId),
-    limit: "2"
+    limit: "50"
   });
 
   if (before !== null) query.set("before", String(before));
