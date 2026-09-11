@@ -2060,6 +2060,7 @@ function setCurrentChatTitle(title) {
 }
 
 function resetToNewChat() {
+  historyPageState = null;
   currentChatId = null;
   messages = [];
 
@@ -3482,9 +3483,10 @@ function addMessage(
   role,
   content,
   isError = false,
-  attachments = []
+  attachments = [],
+  target = chatArea
 ) {
-  removeWelcomeMessage();
+  if (target === chatArea) removeWelcomeMessage();
 
   const messageWrapper =
     document.createElement("div");
@@ -3613,14 +3615,11 @@ if (
 }
 
 
-chatArea.appendChild(
-  messageWrapper
-);
+  target.appendChild(messageWrapper);
 
-
-  chatArea.scrollTop =
-    chatArea.scrollHeight;
-
+  if (target === chatArea) {
+    chatArea.scrollTop = chatArea.scrollHeight;
+  }
 
   return bubble;
 }
@@ -3909,140 +3908,223 @@ chatList.appendChild(row);
   });
 }
 
-async function loadCloudMessages(chatId) {
+let historyPageState = null;
+
+async function loadCloudMessages(chatId, before = null) {
+  const query = new URLSearchParams({
+    chat_id: String(chatId),
+    limit: "50"
+  });
+
+  if (before !== null) query.set("before", String(before));
+
   const response = await fetch(
-    `/api/history/messages?chat_id=${encodeURIComponent(chatId)}`,
-    {
-      method: "GET"
-    }
+    `/api/history/messages?${query}`,
+    { method: "GET" }
   );
 
-  let data;
-
-  try {
-    data = await response.json();
-  } catch {
-    data = null;
-  }
+  const data = await response.json().catch(() => null);
 
   if (!response.ok) {
+    throw new Error(data?.error || "Could not load messages");
+  }
+
+  if (
+    !Array.isArray(data?.messages) ||
+    typeof data.has_more !== "boolean"
+  ) {
     throw new Error(
-      data?.error || "Could not load messages"
+      "History pagination is not ready. Deploy the Worker and messages proxy first."
     );
   }
 
-  const savedMessages =
-    Array.isArray(data?.messages)
-      ? data.messages
-      : [];
+  return data;
+}
 
-  return savedMessages;
+function renderSavedHistoryMessage(message, target) {
+  return addMessage(
+    message.role,
+    message.content,
+    false,
+    Array.isArray(message.attachments)
+      ? message.attachments.map(attachment => ({
+          storageId: attachment.id,
+          name: attachment.name || "Attachment",
+          type: attachment.type || "",
+          size: Number(attachment.size || 0)
+        }))
+      : [],
+    target
+  );
+}
+
+function updateOlderHistoryButton(state) {
+  state.button.disabled = state.loading || !state.hasMore;
+  state.button.textContent = state.loading
+    ? "Loading…"
+    : state.hasMore
+      ? "Load older messages"
+      : "Beginning of conversation";
+}
+
+async function loadOlderHistory(state) {
+  if (
+    historyPageState !== state ||
+    currentChatId !== state.chatId ||
+    state.loading ||
+    !state.hasMore
+  ) return;
+
+  state.loading = true;
+  updateOlderHistoryButton(state);
+
+  try {
+    const page = await loadCloudMessages(
+      state.chatId,
+      state.before
+    );
+
+    if (
+      historyPageState !== state ||
+      currentChatId !== state.chatId
+    ) return;
+
+    const fragment = document.createDocumentFragment();
+
+    page.messages.forEach(message =>
+      renderSavedHistoryMessage(message, fragment)
+    );
+
+    const anchor = state.control.nextElementSibling;
+    const oldTop = anchor?.getBoundingClientRect().top;
+
+    state.control.after(fragment);
+
+    if (anchor) {
+      chatArea.scrollBy({
+        top: anchor.getBoundingClientRect().top - oldTop,
+        behavior: "instant"
+      });
+    }
+
+    state.before = page.next_before;
+    state.hasMore = page.has_more;
+    updateScrollToLatestButton();
+
+  } catch (error) {
+    if (
+      historyPageState === state &&
+      currentChatId === state.chatId
+    ) {
+      showToast(
+        error.message || "Could not load older messages",
+        "error"
+      );
+    }
+
+  } finally {
+    state.loading = false;
+    if (historyPageState === state) {
+      updateOlderHistoryButton(state);
+    }
+  }
 }
 
 async function openSavedChat(chat) {
-  const savedMessages =
-    await loadCloudMessages(chat.id);
+  const previousState = historyPageState;
+  const state = {
+    chatId: chat.id,
+    loading: false,
+    hasMore: false,
+    before: null
+  };
 
-currentChatId = chat.id;
+  historyPageState = state;
 
-setCurrentChatTitle(
-  chat.title || "New Chat"
-);
+  let page;
 
-currentModel =
-  chat.model || currentModel;
+  try {
+    page = await loadCloudMessages(chat.id);
+  } catch (error) {
+    if (historyPageState !== state) return;
+    historyPageState = previousState;
+    throw error;
+  }
 
-localStorage.setItem(
-  "BlamP_model",
-  currentModel
-);
+  if (historyPageState !== state) return;
 
-modelSelect.value =
-  currentModel;
+  currentChatId = chat.id;
+  setCurrentChatTitle(chat.title || "New Chat");
 
-headerModelSelect.value =
-  currentModel;
-syncModelPickerLabel();
-  
-  messages = savedMessages.map(
-    (message) => ({
-      role: message.role,
-      content: message.content
-    })
-  );
+  currentModel = chat.model || currentModel;
+  localStorage.setItem("BlamP_model", currentModel);
+  modelSelect.value = currentModel;
+  headerModelSelect.value = currentModel;
+  syncModelPickerLabel();
 
+  // Older pages only change the display, not the sending/retry array.
+  messages = page.messages.map(message => ({
+    role: message.role,
+    content: message.content
+  }));
 
   chatArea.innerHTML = "";
 
-if (!messages.length) {
+  if (!messages.length) {
+    chatArea.innerHTML = `
+      <div class="welcome-message">
+        <h2>${escapeHtml(chat.title || "New Chat")}</h2>
+        <p>Start a conversation with BlamP AI.</p>
+      </div>`;
 
-  chatArea.innerHTML = `
-    <div class="welcome-message">
+  } else {
+    state.control = document.createElement("div");
+    state.control.className = "history-page-control";
 
-      <h2>
-        ${escapeHtml(
-          chat.title || "New Chat"
-        )}
-      </h2>
+    state.button = document.createElement("button");
+    state.button.type = "button";
 
-      <p>
-        Start a conversation with BlamP AI.
-      </p>
+    state.control.append(state.button);
+    state.hasMore = page.has_more;
+    state.before = page.next_before;
 
-    </div>
-  `;
+    updateOlderHistoryButton(state);
 
-
-} else {
-
-    savedMessages.forEach(
-      (message) => {
-        addMessage(
-          message.role,
-          message.content,
-          false,
-          Array.isArray(
-            message.attachments
-          )
-            ? message.attachments.map(
-                (attachment) => ({
-                  storageId:
-                    attachment.id,
-
-                  name:
-                    attachment.name ||
-                    "Attachment",
-
-                  type:
-                    attachment.type ||
-                    "",
-
-                  size:
-                    Number(
-                      attachment.size || 0
-                    )
-                })
-              )
-            : []
-        );
-      }
+    state.button.addEventListener(
+      "click",
+      () => loadOlderHistory(state)
     );
-  }
 
+    chatArea.append(state.control);
+
+    const fragment = document.createDocumentFragment();
+
+    page.messages.forEach(message =>
+      renderSavedHistoryMessage(message, fragment)
+    );
+
+    chatArea.append(fragment);
+
+    chatArea.scrollTo({
+      top: chatArea.scrollHeight,
+      behavior: "instant"
+    });
+
+    updateScrollToLatestButton();
+  }
 
   try {
     await loadChats();
-
   } catch (error) {
-    console.error(
-      "Could not refresh chat list:",
-      error
-    );
+    console.error("Could not refresh chat list:", error);
   }
 
+  if (
+    historyPageState !== state ||
+    currentChatId !== chat.id
+  ) return;
 
   closeHistory();
-
   messageInput.focus();
 }
 
@@ -4690,7 +4772,7 @@ headers: {
 
 body: JSON.stringify({
   model: currentModel,
-  messages: messages,
+  messages: messages.slice(-50),
 
 attachment_ids:
   outgoingAttachments
