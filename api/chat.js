@@ -10,6 +10,9 @@ const ATTACHMENT_SERVICE_URL =
 const ATTACHMENT_INTERNAL_SECRET =
   process.env.ATTACHMENT_INTERNAL_SECRET;
 
+const MAX_AI_TEXT_BYTES =
+  5 * 1024 * 1024;
+
 function isAllowedOrigin(req) {
   const origin =
     req.headers.origin || "";
@@ -326,11 +329,11 @@ if (
 
     if (!mimeType.toLowerCase().startsWith("image/")) {
       try {
-        const document = await readTextAttachment(
-          fileResponse,
-          attachmentId,
-          100 * 1024 - extractedTextBytes
-        );
+const document = await readTextAttachment(
+  fileResponse,
+  attachmentId,
+  MAX_AI_TEXT_BYTES - extractedTextBytes
+);
 
         extractedTextBytes += document.size;
         documentParts.push(document.part);
@@ -617,7 +620,7 @@ async function readTextAttachment(
         await reader.cancel();
 
         throw new Error(
-          "Text attachments exceed the 100 KB AI-reading limit per message. Send smaller text files."
+          "Text attachments exceed the 5 MB AI-reading limit per message. Send smaller text files."
         );
       }
 
