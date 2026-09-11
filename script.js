@@ -4777,13 +4777,7 @@ body: JSON.stringify({
 attachment_ids:
   outgoingAttachments
     .filter(
-      (attachment) =>
-        attachment.storageId &&
-        String(
-          attachment.type || ""
-        ).startsWith(
-          "image/"
-        )
+      (attachment) => attachment.storageId
     )
     .map(
       (attachment) =>
