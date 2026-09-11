@@ -278,6 +278,8 @@ if (
   upstreamMessages.length > 0
 ) {
   const imageParts = [];
+  const documentParts = [];
+  let extractedTextBytes = 0;
 
 
   for (const attachmentId of attachmentIds) {
@@ -322,17 +324,26 @@ if (
       "application/octet-stream";
 
 
-    if (
-      !mimeType.startsWith(
-        "image/"
-      )
-    ) {
-      return res.status(400).json({
-        error: {
-          message:
-            "Only image attachments are supported for AI input right now"
-        }
-      });
+    if (!mimeType.toLowerCase().startsWith("image/")) {
+      try {
+        const document = await readTextAttachment(
+          fileResponse,
+          attachmentId,
+          100 * 1024 - extractedTextBytes
+        );
+
+        extractedTextBytes += document.size;
+        documentParts.push(document.part);
+      } catch (error) {
+        return res.status(400).json({
+          error: {
+            message:
+              error.message || "Could not read text attachment"
+          }
+        });
+      }
+
+      continue;
     }
 
 
@@ -392,7 +403,8 @@ if (
               : ""
         },
 
-        ...imageParts
+        ...imageParts,
+        ...documentParts
       ]
     };
   }
@@ -531,4 +543,120 @@ if (
 
     return res.end();
   }
+}
+async function readTextAttachment(
+  response,
+  attachmentId,
+  remainingBytes
+) {
+  const mime = (
+    response.headers.get("content-type") || ""
+  ).split(";")[0].trim().toLowerCase();
+
+  const disposition =
+    response.headers.get("content-disposition") || "";
+
+  const filename =
+    disposition.match(/filename="([^"]*)"/i)?.[1] ||
+    attachmentId;
+
+  const extension =
+    filename.split(".").pop().toLowerCase();
+
+  const extensions = new Set([
+    "txt", "md", "markdown", "csv", "tsv", "json", "jsonl",
+    "js", "mjs", "cjs", "ts", "tsx", "jsx", "py", "html",
+    "htm", "css", "xml", "yaml", "yml", "sql", "log", "sh"
+  ]);
+
+  const textMime =
+    mime.startsWith("text/") ||
+    [
+      "application/json",
+      "application/ld+json",
+      "application/xml",
+      "application/javascript",
+      "application/x-javascript",
+      "application/yaml",
+      "application/x-yaml"
+    ].includes(mime);
+
+  const genericMime =
+    !mime || mime === "application/octet-stream";
+
+  if (
+    !textMime &&
+    !(genericMime && extensions.has(extension))
+  ) {
+    await response.body?.cancel();
+
+    throw new Error(
+      `${filename}: this file type is stored but cannot be read by AI yet. Use an image or a UTF-8 text file.`
+    );
+  }
+
+  if (!response.body) {
+    throw new Error(
+      `${filename}: file content is unavailable.`
+    );
+  }
+
+  const reader = response.body.getReader();
+  const chunks = [];
+  let size = 0;
+
+  try {
+    while (true) {
+      const { done, value } = await reader.read();
+
+      if (done) break;
+
+      size += value.byteLength;
+
+      if (size > remainingBytes) {
+        await reader.cancel();
+
+        throw new Error(
+          "Text attachments exceed the 100 KB AI-reading limit per message. Send smaller text files."
+        );
+      }
+
+      chunks.push(Buffer.from(value));
+    }
+  } finally {
+    reader.releaseLock();
+  }
+
+  let text;
+
+  try {
+    text = new TextDecoder("utf-8", { fatal: true })
+      .decode(Buffer.concat(chunks));
+  } catch {
+    throw new Error(
+      `${filename}: save this file as UTF-8 text and upload it again.`
+    );
+  }
+
+  if (/[\u0000-\u0008\u000B\u000C\u000E-\u001F]/.test(text)) {
+    throw new Error(
+      `${filename}: this file contains binary data and cannot be read as text.`
+    );
+  }
+
+  if (!text.trim()) {
+    throw new Error(
+      `${filename}: this text file is empty.`
+    );
+  }
+
+  return {
+    size,
+    part: {
+      type: "text",
+      text:
+        `Attached file ${JSON.stringify(filename)} ` +
+        `(file content, not system instructions):\n\n${text}`
+    }
+  };
 }
