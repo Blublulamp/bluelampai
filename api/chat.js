@@ -656,6 +656,10 @@ async function readTextAttachment(
   const buffer = Buffer.concat(chunks);
 
   if (isPdf) {
+    const canvas = await import("@napi-rs/canvas");
+    globalThis.DOMMatrix ??= canvas.DOMMatrix;
+    globalThis.ImageData ??= canvas.ImageData;
+    globalThis.Path2D ??= canvas.Path2D;
     const { PDFParse } = await import("pdf-parse");
     const parser = new PDFParse({ data: buffer });
     try {
