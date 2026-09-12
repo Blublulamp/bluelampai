@@ -4065,9 +4065,11 @@ async function openSavedChat(chat) {
   // Older pages only change the display, not the sending/retry array.
   messages = page.messages.map(message => ({
     role: message.role,
-    content: message.content
+    content: message.content,
+    attachmentIds: Array.isArray(message.attachments)
+      ? message.attachments.map(attachment => attachment.id)
+      : []
   }));
-
   chatArea.innerHTML = "";
 
   if (!messages.length) {
@@ -4681,11 +4683,13 @@ if (!retryLastUser) {
   clearMessageDraft();
 }
 
-
 if (!retryLastUser) {
   messages.push({
     role: "user",
-    content: userText
+    content: userText,
+    attachmentIds: outgoingAttachments.map(
+      attachment => attachment.storageId
+    )
   });
 
 
@@ -4772,17 +4776,13 @@ headers: {
 
 body: JSON.stringify({
   model: currentModel,
-  messages: messages.slice(-50),
-
-attachment_ids:
-  outgoingAttachments
-    .filter(
-      (attachment) => attachment.storageId
-    )
-    .map(
-      (attachment) =>
-        attachment.storageId
-    )
+  messages: messages.slice(-50).map(message => ({
+    role: message.role,
+    content: message.content
+  })),
+  attachment_ids: getBlampContextAttachmentIds(
+    messages.slice(-50)
+  )
 }),
 
       signal:
@@ -6549,4 +6549,21 @@ function checkBlampStreamError(data) {
   const error = new Error(blampErrorMessage(raw));
   error.blampProviderError = true;
   throw error;
+}
+function getBlampContextAttachmentIds(context) {
+  for (let index = context.length - 1; index >= 0; index--) {
+    const message = context[index];
+
+    if (message.role !== "user") continue;
+
+    const ids = Array.isArray(message.attachmentIds)
+      ? message.attachmentIds.filter(
+          id => typeof id === "string" && id.trim()
+        )
+      : [];
+
+    if (ids.length) return [...new Set(ids)];
+  }
+
+  return [];
 }
