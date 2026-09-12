@@ -603,8 +603,14 @@ async function readTextAttachment(
   const genericMime =
     !mime || mime === "application/octet-stream";
 
+  const isPdf = mime === "application/pdf" ||
+    (genericMime && extension === "pdf");
+  const isDocx =
+    mime === "application/vnd.openxmlformats-officedocument.wordprocessingml.document" ||
+    (genericMime && extension === "docx");
+
   if (
-    !textMime &&
+    !isPdf && !isDocx && !textMime &&
     !(genericMime && extensions.has(extension))
   ) {
     await response.body?.cancel();
@@ -647,13 +653,51 @@ async function readTextAttachment(
   }
 
   let text;
+  const buffer = Buffer.concat(chunks);
 
-  try {
-    text = new TextDecoder("utf-8", { fatal: true })
-      .decode(Buffer.concat(chunks));
-  } catch {
+  if (isPdf) {
+    const { PDFParse } = await import("pdf-parse");
+    const parser = new PDFParse({ data: buffer });
+    try {
+      const result = await parser.getText();
+      text = result.pages.map(page => page.text).join("\n\n");
+    } catch {
+      throw new Error(
+        `${filename}: could not extract PDF text. It may be damaged or password-protected.`
+      );
+    } finally {
+      await parser.destroy();
+    }
+  } else if (isDocx) {
+    const { default: mammoth } = await import("mammoth");
+    try {
+      const result = await mammoth.extractRawText({ buffer });
+      text = result.value;
+    } catch {
+      throw new Error(
+        `${filename}: could not extract DOCX text. It may be damaged or password-protected.`
+      );
+    }
+  } else {
+    try {
+      text = new TextDecoder("utf-8", { fatal: true }).decode(buffer);
+    } catch {
+      throw new Error(
+        `${filename}: save this file as UTF-8 text and upload it again.`
+      );
+    }
+  }
+
+  if (!text.trim()) {
     throw new Error(
-      `${filename}: save this file as UTF-8 text and upload it again.`
+      `${filename}: no readable text found. Scanned PDFs need OCR, which is not supported yet.`
+    );
+  }
+
+  size = Math.max(size, Buffer.byteLength(text, "utf8"));
+  if (size > remainingBytes) {
+    throw new Error(
+      `${filename}: extracted text exceeds the remaining 5 MB analysis allowance.`
     );
   }
 
