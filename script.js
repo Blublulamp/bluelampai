@@ -4904,6 +4904,8 @@ attachment_ids:
       }
 
 
+      checkBlampStreamError(chunkData);
+
       const chunk =
         chunkData?.choices?.[0]?.delta?.content;
 
@@ -4969,6 +4971,8 @@ renderMessageContent(
         const chunkData =
           JSON.parse(dataText);
 
+        checkBlampStreamError(chunkData);
+
         const chunk =
           chunkData?.choices?.[0]?.delta?.content;
 
@@ -4983,7 +4987,8 @@ renderMessageContent(
 );
         }
 
-      } catch {
+      } catch (error) {
+        if (error?.blampProviderError) throw error;
         // Ignore incomplete final SSE data.
       }
     }
@@ -5033,7 +5038,7 @@ renderMessageContent(
 } else {
   renderMessageContent(
     assistantBubble,
-    `Error: ${error.message}`,
+    `Error: ${blampErrorMessage(error.message)}`,
     "assistant",
     true
   );
@@ -6524,3 +6529,24 @@ function setupTelegramLogin() {
 
 
 startApp();
+function blampErrorMessage(message) {
+  const text = typeof message === "string" ? message : "";
+
+  if (/\b(?:sedang sibuk|server (?:is )?busy|service (?:is )?busy|overloaded)\b/i.test(text)) {
+    return "This model is busy right now. Please try again shortly or choose another model.";
+  }
+
+  return text || "The request failed. Please try again.";
+}
+
+function checkBlampStreamError(data) {
+  if (!data?.error) return;
+
+  const raw = typeof data.error === "string"
+    ? data.error
+    : data.error.message;
+
+  const error = new Error(blampErrorMessage(raw));
+  error.blampProviderError = true;
+  throw error;
+}
