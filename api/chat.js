@@ -339,10 +339,11 @@ if (
 
     if (!mimeType.toLowerCase().startsWith("image/")) {
       try {
-const document = await readTextAttachment(
+const document = await readCachedTextAttachment(
   fileResponse,
   attachmentId,
-  MAX_AI_TEXT_BYTES - extractedTextBytes
+  MAX_AI_TEXT_BYTES - extractedTextBytes,
+  accountId
 );
 
         extractedTextBytes += document.size;
@@ -726,6 +727,7 @@ async function readTextAttachment(
 
   return {
     size,
+    extractedText: text,
     part: {
       type: "text",
       text:
@@ -788,4 +790,104 @@ function selectRelevantDocumentPart(part, question, bodyBudget = 96_000) {
         `[Positions ${chunk.start + 1}-${chunk.start + chunk.text.length}]\n${chunk.text}`
       ).join("\n\n--- document section ---\n\n")
   };
+}
+async function readCachedTextAttachment(
+  response,
+  attachmentId,
+  remainingBytes,
+  accountId
+) {
+  const cacheUrl =
+    `${ATTACHMENT_SERVICE_URL.replace(/\/$/, "")}` +
+    `/text-cache?id=${encodeURIComponent(attachmentId)}`;
+
+  const headers = {
+    "x-internal-secret": ATTACHMENT_INTERNAL_SECRET,
+    "x-account-id": accountId
+  };
+
+  let cachedDocument = null;
+
+  try {
+    const cached = await fetch(cacheUrl, {
+      headers,
+      signal: AbortSignal.timeout(8000)
+    });
+
+    if (cached.ok) {
+      const analysisBytes = Number(
+        cached.headers.get("x-blamp-analysis-bytes")
+      );
+
+      if (
+        !Number.isSafeInteger(analysisBytes) ||
+        analysisBytes <= 0
+      ) {
+        await cached.body?.cancel();
+
+      } else if (analysisBytes > remainingBytes) {
+        await cached.body?.cancel();
+
+      } else {
+        const cachedHeaders = new Headers({
+          "content-type": "text/plain; charset=utf-8"
+        });
+
+        const disposition =
+          response.headers.get("content-disposition");
+
+        if (disposition) {
+          cachedHeaders.set("content-disposition", disposition);
+        }
+
+        cachedDocument = await readTextAttachment(
+          new Response(cached.body, {
+            headers: cachedHeaders
+          }),
+          attachmentId,
+          remainingBytes
+        );
+
+        cachedDocument.size = Math.max(
+          cachedDocument.size,
+          analysisBytes
+        );
+      }
+    } else {
+      await cached.body?.cancel();
+    }
+
+  } catch {
+    // Cache is optional; use the original file if unavailable.
+  }
+
+  if (cachedDocument) {
+    await response.body?.cancel();
+    return cachedDocument;
+  }
+
+  const document = await readTextAttachment(
+    response,
+    attachmentId,
+    remainingBytes
+  );
+
+  try {
+    const saved = await fetch(cacheUrl, {
+      method: "PUT",
+      headers: {
+        ...headers,
+        "Content-Type": "text/plain; charset=utf-8"
+      },
+      body: document.extractedText,
+      signal: AbortSignal.timeout(8000)
+    });
+
+    await saved.body?.cancel();
+
+  } catch {
+    // Cache failure must not discard successfully extracted text.
+  }
+
+  return document;
 }
