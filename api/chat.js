@@ -665,9 +665,14 @@ async function readTextAttachment(
     try {
       const result = await parser.getText();
       text = result.pages.map(page => page.text).join("\n\n");
-    } catch {
+    } catch (error) {
+      console.error("PDF extraction failed:", {
+        name: error?.name,
+        message: error?.message,
+        stack: error?.stack
+      });
       throw new Error(
-        `${filename}: could not extract PDF text. It may be damaged or password-protected.`
+        `${filename}: PDF text extraction failed.`
       );
     } finally {
       await parser.destroy();
