@@ -661,6 +661,8 @@ async function readTextAttachment(
     globalThis.ImageData ??= canvas.ImageData;
     globalThis.Path2D ??= canvas.Path2D;
     const { PDFParse } = await import("pdf-parse");
+    const { getData } = await import("pdf-parse/worker");
+    PDFParse.setWorker(getData());
     const parser = new PDFParse({ data: buffer });
     try {
       const result = await parser.getText();
