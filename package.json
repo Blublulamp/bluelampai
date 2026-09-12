@@ -2,6 +2,7 @@
   "private": true,
   "dependencies": {
     "pdf-parse": "2.4.5",
-    "mammoth": "1.11.0"
+    "mammoth": "1.11.0",
+    "@napi-rs/canvas": "0.1.80"
   }
 }
