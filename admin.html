@@ -583,12 +583,23 @@ button:not(:disabled):hover {
         placeholder="Enter ADMIN_SECRET"
       >
 
-      <button
-        id="saveSecretBtn"
-        class="secondary"
-      >
-        Save Admin Secret
-      </button>
+      <div class="row">
+        <button
+          id="saveSecretBtn"
+          class="secondary"
+          type="button"
+        >
+          Save Admin Secret
+        </button>
+
+        <button
+          id="logoutBtn"
+          class="secondary"
+          type="button"
+        >
+          Log out
+        </button>
+      </div>
 
       <div
         id="secretMessage"
@@ -839,13 +850,28 @@ let auditEvents = [];
       document.getElementById("accountsList");
 
 
+    // Remove the old persistent copy.
+    localStorage.removeItem("globalblamp_admin_secret");
+
     let adminSecret =
-      localStorage.getItem(
+      sessionStorage.getItem(
         "globalblamp_admin_secret"
       ) || "";
 
-
     adminSecretInput.value = adminSecret;
+
+    const logoutBtn =
+      document.getElementById("logoutBtn");
+
+    logoutBtn.addEventListener("click", () => {
+      sessionStorage.removeItem("globalblamp_admin_secret");
+      localStorage.removeItem("globalblamp_admin_secret");
+
+      adminSecret = "";
+      adminSecretInput.value = "";
+
+      window.location.reload();
+    });
 
 
     function setMessage(
@@ -892,14 +918,14 @@ let auditEvents = [];
 
         adminSecret = value;
 
-        localStorage.setItem(
+        sessionStorage.setItem(
           "globalblamp_admin_secret",
           adminSecret
         );
 
         setMessage(
           secretMessage,
-          "Admin secret saved on this browser.",
+         "Admin secret saved for this tab. Use Log out when finished.",
           "success"
         );
 
@@ -1788,9 +1814,76 @@ ${
         item
       );
     }
+    let adminActionBusy = false;
 
+    async function runAdminAction(action) {
+      if (adminActionBusy) {
+        setMessage(
+          accountsMessage,
+          "An account action is already running. Please wait."
+        );
+        return;
+      }
 
-    async function setAccountStatus(
+      adminActionBusy = true;
+
+      const buttons = [
+        ...document.querySelectorAll(
+          ".account-item button[data-action]"
+        )
+      ];
+
+      const previousStates =
+        buttons.map(button => button.disabled);
+
+      buttons.forEach(button => {
+        button.disabled = true;
+      });
+
+      try {
+        await action();
+      } catch (error) {
+        setMessage(
+          accountsMessage,
+          "Unable to complete the account action. Please try again.",
+          "error"
+        );
+      } finally {
+        adminActionBusy = false;
+
+        buttons.forEach((button, index) => {
+          if (button.isConnected) {
+            button.disabled = previousStates[index];
+          }
+        });
+      }
+    }
+
+    async function setAccountStatus(account, newStatus) {
+      return runAdminAction(() =>
+        performSetAccountStatus(account, newStatus)
+      );
+    }
+
+    async function migrateLegacyHistory(account, telegramUser) {
+      return runAdminAction(() =>
+        performMigrateLegacyHistory(account, telegramUser)
+      );
+    }
+
+    async function deleteAccountHistory(account) {
+      return runAdminAction(() =>
+        performDeleteAccountHistory(account)
+      );
+    }
+
+    async function deleteAccount(account) {
+      return runAdminAction(() =>
+        performDeleteAccount(account)
+      );
+    }
+
+    async function performSetAccountStatus(
       account,
       newStatus
     ) {
@@ -1857,7 +1950,7 @@ ${
       }
     }
 
-    async function migrateLegacyHistory(
+    async function performMigrateLegacyHistory(
       account,
       telegramUser
     ) {
@@ -1949,7 +2042,7 @@ ${
       }
     }
 
-    async function deleteAccountHistory(
+    async function performDeleteAccountHistory(
       account
     ) {
       const confirmed = confirm(
@@ -2010,7 +2103,7 @@ ${
     }
 
 
-    async function deleteAccount(
+    async function performDeleteAccount(
       account
     ) {
       const confirmed = confirm(
