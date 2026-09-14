@@ -170,20 +170,91 @@
       background: #08140d;
       color: #ffffff;
     }
+select {
+  width: 100%;
+  height: 46px;
+  padding: 0 13px;
+  border: 1px solid #303038;
+  border-radius: 12px;
+  outline: none;
+  background: #1d1d22;
+  color: #ffffff;
+}
+
+.audit-card {
+  padding: 20px;
+}
+
+.audit-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+}
+
+.audit-title {
+  display: grid;
+  gap: 4px;
+}
+
+.audit-title strong {
+  font-size: 17px;
+}
+
+.audit-title span {
+  color: #8e8e99;
+  font-size: 12px;
+}
+
+.audit-refresh {
+  flex: 0 0 auto !important;
+  min-height: 38px;
+  padding: 0 13px;
+  font-size: 12px;
+}
+
+.audit-filter-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 210px;
+  gap: 10px;
+  margin-top: 18px;
+}
+
+.audit-filter-grid input,
+.audit-filter-grid select {
+  margin-bottom: 0;
+}
+
 .audit-list {
   display: grid;
   gap: 8px;
-  margin-top: 12px;
+  margin-top: 14px;
 }
 
 .audit-item {
-  padding: 10px;
+  padding: 12px 13px;
   border: 1px solid #2a2a30;
-  border-radius: 10px;
+  border-radius: 11px;
   background: #111114;
-  color: #b7b7c0;
+  color: #c4c4ce;
   font-size: 13px;
-  line-height: 1.45;
+  line-height: 1.5;
+  overflow-wrap: anywhere;
+}
+
+@media (max-width: 620px) {
+  .audit-header {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .audit-refresh {
+    width: 100%;
+  }
+
+  .audit-filter-grid {
+    grid-template-columns: 1fr;
+  }
 }
     .account-item {
       padding: 14px;
@@ -375,8 +446,6 @@
       </div>
 
     </div>
-
-
     <div class="card">
 
       <label for="searchApiKeyInput">
@@ -409,46 +478,52 @@
       ></div>
 
     </div>
-<div class="card">
 
-  <div class="row">
-    <strong>Recent Admin Activity</strong>
+    <div class="card audit-card">
 
-    <button
-      id="refreshAuditBtn"
-      class="secondary"
-    >
-      Refresh Activity
-    </button>
-  </div>
-  <div class="search-grid">
-    <input
-      id="auditSearchInput"
-      type="search"
-      placeholder="Search activity..."
-    />
+      <div class="audit-header">
+        <div class="audit-title">
+          <strong>Recent Admin Activity</strong>
+          <span>Track recent administrative actions</span>
+        </div>
 
-    <select id="auditActionFilter">
-      <option value="">All actions</option>
-      <option value="account_searched">API searched</option>
-      <option value="account_added">Account added</option>
-      <option value="account_enabled">Account enabled</option>
-      <option value="account_disabled">Account disabled</option>
-      <option value="legacy_history_deleted">History deleted</option>
-      <option value="account_deleted">Account deleted</option>
-    </select>
-  </div>
-  <div
-    id="auditMessage"
-    class="message"
-  ></div>
+        <button
+          id="refreshAuditBtn"
+          class="secondary audit-refresh"
+        >
+          Refresh
+        </button>
+      </div>
 
-  <div
-    id="auditList"
-    class="audit-list"
-  ></div>
+      <div class="audit-filter-grid">
+        <input
+          id="auditSearchInput"
+          type="search"
+          placeholder="Search activity..."
+        >
 
-</div>
+        <select id="auditActionFilter">
+          <option value="">All actions</option>
+          <option value="account_searched">API searched</option>
+          <option value="account_added">Account added</option>
+          <option value="account_enabled">Account enabled</option>
+          <option value="account_disabled">Account disabled</option>
+          <option value="legacy_history_deleted">History deleted</option>
+          <option value="account_deleted">Account deleted</option>
+        </select>
+      </div>
+
+      <div
+        id="auditMessage"
+        class="message"
+      ></div>
+
+      <div
+        id="auditList"
+        class="audit-list"
+      ></div>
+
+    </div>
 
     <div class="card">
 
