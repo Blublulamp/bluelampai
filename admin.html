@@ -135,6 +135,42 @@
       margin-top: 14px;
     }
 
+    .search-grid {
+      display: grid;
+      gap: 10px;
+      grid-template-columns: 1fr auto;
+    }
+
+    .search-grid input {
+      margin-bottom: 0;
+    }
+
+    .search-result {
+      display: grid;
+      gap: 10px;
+      margin-top: 14px;
+    }
+
+    .key-reveal {
+      margin-top: 12px;
+      padding: 12px;
+      border: 1px solid #36634a;
+      border-radius: 12px;
+      background: #102318;
+      color: #b9ffd0;
+      line-height: 1.5;
+    }
+
+    .key-reveal code {
+      display: block;
+      margin: 8px 0;
+      padding: 10px;
+      overflow-wrap: anywhere;
+      border-radius: 8px;
+      background: #08140d;
+      color: #ffffff;
+    }
+
     .account-item {
       padding: 14px;
       border: 1px solid #2a2a30;
@@ -309,6 +345,55 @@
         class="message"
       ></div>
 
+      <div
+        id="apiKeyReveal"
+        class="key-reveal"
+        hidden
+      >
+        Copy this key now. It will not be shown again.
+        <code id="apiKeyRevealValue"></code>
+        <button
+          id="copyApiKeyBtn"
+          class="secondary"
+        >
+          Copy Full API Key
+        </button>
+      </div>
+
+    </div>
+
+
+    <div class="card">
+
+      <label for="searchApiKeyInput">
+        Find Account by Full API Key
+      </label>
+
+      <div class="search-grid">
+        <input
+          id="searchApiKeyInput"
+          type="password"
+          placeholder="Paste gk-..."
+        >
+
+        <button
+          id="searchAccountBtn"
+          class="primary"
+        >
+          Find Account
+        </button>
+      </div>
+
+      <div
+        id="searchMessage"
+        class="message"
+      ></div>
+
+      <div
+        id="searchResult"
+        class="search-result"
+      ></div>
+
     </div>
 
 
@@ -349,6 +434,27 @@
 
     const apiKeyInput =
       document.getElementById("apiKeyInput");
+
+    const apiKeyReveal =
+      document.getElementById("apiKeyReveal");
+
+    const apiKeyRevealValue =
+      document.getElementById("apiKeyRevealValue");
+
+    const copyApiKeyBtn =
+      document.getElementById("copyApiKeyBtn");
+
+    const searchApiKeyInput =
+      document.getElementById("searchApiKeyInput");
+
+    const searchAccountBtn =
+      document.getElementById("searchAccountBtn");
+
+    const searchMessage =
+      document.getElementById("searchMessage");
+
+    const searchResult =
+      document.getElementById("searchResult");
 
     const saveSecretBtn =
       document.getElementById("saveSecretBtn");
@@ -446,6 +552,35 @@
       addAccount
     );
 
+    searchAccountBtn.addEventListener(
+      "click",
+      searchAccount
+    );
+
+    searchApiKeyInput.addEventListener(
+      "keydown",
+      event => {
+        if (event.key === "Enter") {
+          searchAccount();
+        }
+      }
+    );
+
+    copyApiKeyBtn.addEventListener(
+      "click",
+      async () => {
+        await navigator.clipboard.writeText(
+          apiKeyRevealValue.textContent
+        );
+
+        setMessage(
+          addMessage,
+          "Full API key copied.",
+          "success"
+        );
+      }
+    );
+
 
     refreshBtn.addEventListener(
       "click",
@@ -510,6 +645,11 @@
 
         apiKeyInput.value = "";
 
+        apiKeyRevealValue.textContent =
+          data.account.api_key;
+
+        apiKeyReveal.hidden = false;
+
         setMessage(
           addMessage,
           `Added ${data.account.key_preview}`,
@@ -527,6 +667,74 @@
 
       } finally {
         addAccountBtn.disabled = false;
+      }
+    }
+
+
+    async function searchAccount() {
+      if (!adminSecret) {
+        setMessage(
+          searchMessage,
+          "Save your admin secret first.",
+          "error"
+        );
+
+        return;
+      }
+
+      const apiKey =
+        searchApiKeyInput.value.trim();
+
+      if (!apiKey) {
+        setMessage(
+          searchMessage,
+          "Paste a complete gk API key.",
+          "error"
+        );
+
+        return;
+      }
+
+      setMessage(searchMessage, "Searching...");
+      searchResult.innerHTML = "";
+      searchAccountBtn.disabled = true;
+
+      try {
+        const response = await fetch(
+          `${HISTORY_API}/admin/accounts/search`,
+          {
+            method: "POST",
+            headers: getAdminHeaders(),
+            body: JSON.stringify({
+              api_key: apiKey
+            })
+          }
+        );
+
+        const data = await response.json();
+
+        if (!response.ok) {
+          throw new Error(
+            data?.error ||
+            "No account found."
+          );
+        }
+
+        renderAccount(data.account, searchResult);
+
+        setMessage(
+          searchMessage,
+          "Account found.",
+          "success"
+        );
+      } catch (error) {
+        setMessage(
+          searchMessage,
+          error.message,
+          "error"
+        );
+      } finally {
+        searchAccountBtn.disabled = false;
       }
     }
 
@@ -694,7 +902,10 @@
     }
 
 
-    function renderAccount(account) {
+    function renderAccount(
+      account,
+      target = accountsList
+    ) {
       const item =
         document.createElement("div");
 
@@ -1103,7 +1314,7 @@ ${
       );
 
 
-      accountsList.appendChild(
+      target.appendChild(
         item
       );
     }
