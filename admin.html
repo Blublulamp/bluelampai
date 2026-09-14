@@ -170,7 +170,21 @@
       background: #08140d;
       color: #ffffff;
     }
+.audit-list {
+  display: grid;
+  gap: 8px;
+  margin-top: 12px;
+}
 
+.audit-item {
+  padding: 10px;
+  border: 1px solid #2a2a30;
+  border-radius: 10px;
+  background: #111114;
+  color: #b7b7c0;
+  font-size: 13px;
+  line-height: 1.45;
+}
     .account-item {
       padding: 14px;
       border: 1px solid #2a2a30;
@@ -395,7 +409,30 @@
       ></div>
 
     </div>
+<div class="card">
 
+  <div class="row">
+    <strong>Recent Admin Activity</strong>
+
+    <button
+      id="refreshAuditBtn"
+      class="secondary"
+    >
+      Refresh Activity
+    </button>
+  </div>
+
+  <div
+    id="auditMessage"
+    class="message"
+  ></div>
+
+  <div
+    id="auditList"
+    class="audit-list"
+  ></div>
+
+</div>
 
     <div class="card">
 
@@ -455,6 +492,15 @@
 
     const searchResult =
       document.getElementById("searchResult");
+
+    const refreshAuditBtn =
+  document.getElementById("refreshAuditBtn");
+
+const auditMessage =
+  document.getElementById("auditMessage");
+
+const auditList =
+  document.getElementById("auditList");
 
     const saveSecretBtn =
       document.getElementById("saveSecretBtn");
@@ -543,6 +589,7 @@
         );
 
         loadAccounts();
+        loadAudit();
       }
     );
 
@@ -587,7 +634,77 @@
       loadAccounts
     );
 
+refreshAuditBtn.addEventListener(
+  "click",
+  loadAudit
+);
 
+async function loadAudit() {
+  if (!adminSecret) {
+    setMessage(
+      auditMessage,
+      "Save your admin secret first.",
+      "error"
+    );
+
+    return;
+  }
+
+  refreshAuditBtn.disabled = true;
+
+  try {
+    const response = await fetch(
+      `${HISTORY_API}/admin/audit`,
+      {
+        method: "GET",
+        headers: getAdminHeaders()
+      }
+    );
+
+    const data =
+      await response.json();
+
+    if (!response.ok) {
+      throw new Error(
+        data?.error ||
+        "Unable to load admin activity"
+      );
+    }
+
+    auditList.innerHTML = "";
+
+    (data.events || []).forEach(event => {
+      const item =
+        document.createElement("div");
+
+      item.className =
+        "audit-item";
+
+      item.textContent =
+        `${event.created_at} • ` +
+        `${event.action} • ` +
+        `${event.key_preview || `Account ${event.account_id || "-"}`}`;
+
+      auditList.appendChild(item);
+    });
+
+    setMessage(
+      auditMessage,
+      data.events?.length
+        ? `${data.events.length} recent event(s).`
+        : "No admin activity yet.",
+      "success"
+    );
+  } catch (error) {
+    setMessage(
+      auditMessage,
+      error.message,
+      "error"
+    );
+  } finally {
+    refreshAuditBtn.disabled = false;
+  }
+}
     async function addAccount() {
       if (!adminSecret) {
         setMessage(
@@ -1613,6 +1730,7 @@ ${
 
     if (adminSecret) {
       loadAccounts();
+      loadAudit();
     }
   </script>
 
