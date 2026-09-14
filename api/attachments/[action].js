@@ -136,7 +136,56 @@ async function resolveAccount(
       String(ownerTelegramUserId)
   };
 }
+async function verifyChatOwnership(
+  sessionToken,
+  historyInternalSecret,
+  chatId
+) {
+  const response =
+    await fetch(
+      `${HISTORY_API}/internal/verify-chat`,
+      {
+        method: "POST",
+        headers: {
+          "Content-Type":
+            "application/json",
 
+          "Authorization":
+            `Bearer ${sessionToken}`,
+
+          "X-Internal-Secret":
+            historyInternalSecret
+        },
+        body: JSON.stringify({
+          chat_id: chatId
+        })
+      }
+    );
+
+  let data = null;
+
+  try {
+    data =
+      await response.json();
+  } catch {
+    data = null;
+  }
+
+  if (!response.ok) {
+    const error =
+      new Error(
+        data?.error ||
+        "Could not verify chat ownership"
+      );
+
+    error.status =
+      response.status;
+
+    throw error;
+  }
+
+  return data;
+}
 
 async function readRawBody(req) {
   const chunks = [];
@@ -631,6 +680,23 @@ export default async function handler(
         historyInternalSecret
       );
 
+    if (action === "upload") {
+      const rawChatId =
+        req.headers["x-chat-id"];
+
+      const chatId =
+        typeof rawChatId === "string"
+          ? rawChatId.trim()
+          : "";
+
+      if (chatId) {
+        await verifyChatOwnership(
+          sessionToken,
+          historyInternalSecret,
+          chatId
+        );
+      }
+    }
 
     if (action === "upload") {
       return await handleUpload(
