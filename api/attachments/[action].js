@@ -115,7 +115,26 @@ async function resolveAccount(
   }
 
 
-  return accountId;
+  const ownerTelegramUserId =
+    data?.owner_telegram_user_id;
+
+  if (
+    !Number.isSafeInteger(ownerTelegramUserId) ||
+    ownerTelegramUserId <= 0
+  ) {
+    const error = new Error(
+      "Resolved attachment owner is missing or invalid"
+    );
+
+    error.status = 502;
+    throw error;
+  }
+
+  return {
+    accountId,
+    ownerTelegramUserId:
+      String(ownerTelegramUserId)
+  };
 }
 
 
@@ -186,7 +205,7 @@ function getEnvironment() {
 async function handleUpload(
   req,
   res,
-  accountId,
+  identity,
   attachmentServiceUrl,
   attachmentInternalSecret
 ) {
@@ -238,9 +257,11 @@ async function handleUpload(
       attachmentInternalSecret,
 
     "x-account-id":
-      accountId
-  };
+      identity.accountId,
 
+    "x-owner-telegram-user-id":
+      identity.ownerTelegramUserId
+  };
 
   const chatIdHeader =
     req.headers[
@@ -304,7 +325,7 @@ async function handleUpload(
 async function handleFile(
   req,
   res,
-  accountId,
+  identity,
   attachmentServiceUrl,
   attachmentInternalSecret
 ) {
@@ -356,7 +377,10 @@ async function handleFile(
             attachmentInternalSecret,
 
           "x-account-id":
-            accountId
+            identity.accountId,
+
+          "x-owner-telegram-user-id":
+            identity.ownerTelegramUserId
         }
       }
     );
@@ -464,7 +488,7 @@ async function handleFile(
 
 async function handleJsonGet(
   res,
-  accountId,
+  identity,
   attachmentServiceUrl,
   attachmentInternalSecret,
   upstreamPath,
@@ -481,7 +505,10 @@ async function handleJsonGet(
             attachmentInternalSecret,
 
           "x-account-id":
-            accountId
+            identity.accountId,
+
+          "x-owner-telegram-user-id":
+            identity.ownerTelegramUserId
         }
       }
     );
@@ -598,7 +625,7 @@ export default async function handler(
 
 
   try {
-    const accountId =
+    const identity =
       await resolveAccount(
         sessionToken,
         historyInternalSecret
@@ -609,7 +636,7 @@ export default async function handler(
       return await handleUpload(
         req,
         res,
-        accountId,
+        identity,
         attachmentServiceUrl,
         attachmentInternalSecret
       );
@@ -620,7 +647,7 @@ export default async function handler(
       return await handleFile(
         req,
         res,
-        accountId,
+        identity,
         attachmentServiceUrl,
         attachmentInternalSecret
       );
@@ -630,7 +657,7 @@ export default async function handler(
     if (action === "files") {
       return await handleJsonGet(
         res,
-        accountId,
+        identity,
         attachmentServiceUrl,
         attachmentInternalSecret,
         "files",
@@ -641,7 +668,7 @@ export default async function handler(
 
     return await handleJsonGet(
       res,
-      accountId,
+      identity,
       attachmentServiceUrl,
       attachmentInternalSecret,
       "usage",
