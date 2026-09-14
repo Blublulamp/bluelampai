@@ -769,10 +769,7 @@ function selectRelevantDocumentPart(part, question, bodyBudget = 96_000) {
   }
 
   const query = typeof question === "string" ? question : "";
-  const terms = [...new Set(
-    query.normalize("NFKC").toLowerCase()
-      .match(/[\p{L}\p{M}\p{N}_$]+/gu) || []
-  )].slice(0, 128);
+  const terms = getDocumentSearchTerms(query);
 
   const chunks = [];
 
@@ -782,11 +779,8 @@ function selectRelevantDocumentPart(part, question, bodyBudget = 96_000) {
     start += chunkSize - overlap
   ) {
     const excerpt = body.slice(start, start + chunkSize);
-    const searchable = excerpt.normalize("NFKC").toLowerCase();
-    const score = terms.reduce(
-      (total, term) => total + Number(searchable.includes(term)),
-      0
-    );
+    const matches = matchDocumentTerms(excerpt, terms);
+    const score = matches.length;
 
     let firstPage = null;
     let lastPage = null;
@@ -811,12 +805,37 @@ function selectRelevantDocumentPart(part, question, bodyBudget = 96_000) {
       start,
       text: excerpt,
       score,
+      matches,
       pageLabel
     });
 
     if (start + chunkSize >= body.length) break;
   }
 
+  const frequency = new Map();
+
+  for (const chunk of chunks) {
+    for (const term of chunk.matches) {
+      frequency.set(
+        term,
+        (frequency.get(term) || 0) + 1
+      );
+    }
+  }
+
+  for (const chunk of chunks) {
+    chunk.score = chunk.matches.reduce(
+      (total, term) =>
+        total +
+        Math.log(
+          (chunks.length + 1) /
+          (frequency.get(term) + 1)
+        ) +
+        1,
+      0
+    );
+  }
+  
   const matched = chunks.filter(chunk => chunk.score > 0)
     .sort((a, b) => b.score - a.score || a.start - b.start)
     .slice(0, maxChunks);
@@ -945,4 +964,52 @@ async function readCachedTextAttachment(
   }
 
   return document;
+}
+function getDocumentSearchTerms(question) {
+  const stopWords = new Set([
+    "a", "an", "the", "and", "or", "of", "to", "in", "on", "at", "for",
+    "from", "with", "about", "is", "are", "was", "were", "be", "been",
+    "do", "does", "did", "can", "could", "would", "should", "will",
+    "i", "me", "my", "you", "your", "we", "our", "it", "its", "this", "that",
+    "these", "those", "what", "which", "where", "when", "why", "how",
+    "please", "tell", "explain", "describe", "summarize", "summarise",
+    "summary", "analyze", "analyse", "check", "file", "document", "pdf"
+  ]);
+
+  const normalized =
+    question.normalize("NFKC").toLowerCase();
+
+  const words =
+    normalized.match(/[\p{L}\p{M}\p{N}_$]+/gu) || [];
+
+  // Quoted words stay searchable, including words such as "in".
+  const quotedWords = new Set(
+    [...normalized.matchAll(/"([^"\n]+)"/g)].flatMap(
+      match =>
+        match[1].match(/[\p{L}\p{M}\p{N}_$]+/gu) || []
+    )
+  );
+
+  return [...new Set(words)]
+    .filter(
+      word =>
+        !stopWords.has(word) ||
+        quotedWords.has(word)
+    )
+    .slice(0, 128);
+}
+
+function matchDocumentTerms(excerpt, terms) {
+  const normalized =
+    excerpt.normalize("NFKC").toLowerCase();
+
+  const words = new Set(
+    normalized.match(/[\p{L}\p{M}\p{N}_$]+/gu) || []
+  );
+
+  return terms.filter(term =>
+    /^[a-z0-9_$]+$/.test(term)
+      ? words.has(term)
+      : normalized.includes(term)
+  );
 }
