@@ -1215,7 +1215,12 @@ attachment.usage =
 updateAttachmentStorageSummary(
   data.usage
 );
-
+if (data.auto_cleanup?.removed_count > 0) {
+  showToast(
+    data.auto_cleanup.notice ||
+      "An older attachment was removed to make space."
+  );
+}
 savePendingAttachmentState();
 renderPendingAttachments();
 }
