@@ -421,7 +421,23 @@
       Refresh Activity
     </button>
   </div>
+  <div class="search-grid">
+    <input
+      id="auditSearchInput"
+      type="search"
+      placeholder="Search activity..."
+    />
 
+    <select id="auditActionFilter">
+      <option value="">All actions</option>
+      <option value="account_searched">API searched</option>
+      <option value="account_added">Account added</option>
+      <option value="account_enabled">Account enabled</option>
+      <option value="account_disabled">Account disabled</option>
+      <option value="legacy_history_deleted">History deleted</option>
+      <option value="account_deleted">Account deleted</option>
+    </select>
+  </div>
   <div
     id="auditMessage"
     class="message"
@@ -501,6 +517,14 @@ const auditMessage =
 
 const auditList =
   document.getElementById("auditList");
+
+const auditSearchInput =
+  document.getElementById("auditSearchInput");
+
+const auditActionFilter =
+  document.getElementById("auditActionFilter");
+
+let auditEvents = [];
 
     const saveSecretBtn =
       document.getElementById("saveSecretBtn");
@@ -638,7 +662,65 @@ refreshAuditBtn.addEventListener(
   "click",
   loadAudit
 );
+auditSearchInput.addEventListener(
+  "input",
+  renderAudit
+);
 
+auditActionFilter.addEventListener(
+  "change",
+  renderAudit
+);
+function renderAudit() {
+  const query =
+    auditSearchInput.value.trim().toLowerCase();
+
+  const action =
+    auditActionFilter.value;
+
+  const filteredEvents =
+    auditEvents.filter(event => {
+      const text = [
+        event.created_at,
+        event.action,
+        event.key_preview,
+        event.account_id
+      ]
+        .filter(Boolean)
+        .join(" ")
+        .toLowerCase();
+
+      return (
+        (!query || text.includes(query)) &&
+        (!action || event.action === action)
+      );
+    });
+
+  auditList.innerHTML = "";
+
+  filteredEvents.forEach(event => {
+    const item =
+      document.createElement("div");
+
+    item.className =
+      "audit-item";
+
+    item.textContent =
+      `${event.created_at} • ` +
+      `${event.action} • ` +
+      `${event.key_preview || `Account ${event.account_id || "-"}`}`;
+
+    auditList.appendChild(item);
+  });
+
+  setMessage(
+    auditMessage,
+    filteredEvents.length
+      ? `${filteredEvents.length} event(s) shown.`
+      : "No matching activity.",
+    "success"
+  );
+}
 async function loadAudit() {
   if (!adminSecret) {
     setMessage(
@@ -670,31 +752,11 @@ async function loadAudit() {
         "Unable to load admin activity"
       );
     }
+    auditEvents =
+      data.events || [];
 
-    auditList.innerHTML = "";
+    renderAudit();
 
-    (data.events || []).forEach(event => {
-      const item =
-        document.createElement("div");
-
-      item.className =
-        "audit-item";
-
-      item.textContent =
-        `${event.created_at} • ` +
-        `${event.action} • ` +
-        `${event.key_preview || `Account ${event.account_id || "-"}`}`;
-
-      auditList.appendChild(item);
-    });
-
-    setMessage(
-      auditMessage,
-      data.events?.length
-        ? `${data.events.length} recent event(s).`
-        : "No admin activity yet.",
-      "success"
-    );
   } catch (error) {
     setMessage(
       auditMessage,
