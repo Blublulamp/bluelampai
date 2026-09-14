@@ -365,6 +365,198 @@ select {
           repeat(3, minmax(0, 1fr));
       }
     }
+/* Account-management layout */
+.admin-heading {
+  display: block;
+  margin: 0;
+  color: #f4f4f7;
+  font-size: 17px;
+  font-weight: 700;
+  line-height: 1.4;
+}
+
+.admin-help {
+  margin: 6px 0 16px;
+  color: #aaaab6;
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+.admin-form-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 150px;
+  align-items: stretch;
+  gap: 12px;
+}
+
+.admin-form-row input {
+  min-width: 0;
+  margin: 0;
+  font: inherit;
+  font-size: 14px;
+}
+
+.admin-form-row button {
+  min-height: 46px;
+}
+
+.accounts-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 16px;
+}
+
+.accounts-toolbar > div {
+  flex: 1 1 240px;
+}
+
+.accounts-toolbar .admin-help {
+  margin-bottom: 0;
+}
+
+.accounts-toolbar button {
+  flex: 0 0 auto;
+}
+
+/* Visible keyboard focus */
+input:focus-visible,
+select:focus-visible,
+button:focus-visible {
+  outline: 2px solid #89cff0;
+  outline-offset: 3px;
+}
+
+button {
+  transition: background-color 150ms ease,
+              box-shadow 150ms ease;
+}
+
+button:not(:disabled):hover {
+  box-shadow: inset 0 0 0 1px #ffffff40;
+}
+
+/* Account cards */
+.account-item {
+  min-width: 0;
+  padding: 20px;
+  border-color: #34343e;
+  background: #121216;
+}
+
+.account-item > .account-key {
+  margin-bottom: 16px;
+  font-family: ui-monospace, SFMono-Regular, Consolas, monospace;
+  font-size: 16px;
+  letter-spacing: 0.2px;
+}
+
+.account-meta {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+  line-height: 1.5;
+}
+
+.account-meta > div {
+  min-width: 0;
+  padding: 10px 12px;
+  border: 1px solid #292930;
+  border-radius: 10px;
+  background: #19191f;
+  color: #c2c2cc;
+  overflow-wrap: anywhere;
+}
+
+/* Preserve the existing status system */
+.account-meta > .status-active {
+  border-color: #315c45;
+  background: #14271d;
+  color: #a0e9ba;
+  font-weight: 700;
+}
+
+.account-meta > .status-disabled {
+  border-color: #673738;
+  background: #301c20;
+  color: #ffb3b8;
+  font-weight: 700;
+}
+
+.account-meta > .status-review {
+  border-color: #68502a;
+  background: #2d2517;
+  color: #f6d491;
+  font-weight: 700;
+}
+
+/* Linked users and account controls */
+.telegram-users {
+  margin-top: 20px;
+  gap: 10px;
+}
+
+.telegram-users > .account-key {
+  margin-bottom: 0;
+  font-size: 14px;
+}
+
+.telegram-user {
+  padding: 12px;
+  overflow-wrap: anywhere;
+}
+
+.account-actions {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  margin-top: 20px;
+  padding-top: 16px;
+  border-top: 1px solid #303039;
+  gap: 10px;
+}
+
+.account-actions button {
+  min-width: 0;
+  padding: 10px 14px;
+  line-height: 1.4;
+}
+
+.account-actions [data-action="delete"] {
+  grid-column: 1 / -1;
+}
+
+/* Distinguish the matching account */
+.search-result:empty {
+  margin-top: 0;
+}
+
+.search-result .account-item {
+  border-color: #6398b1;
+  box-shadow: inset 3px 0 0 #89cff0;
+}
+
+/* Small screens */
+@media (max-width: 620px) {
+  .admin-form-row,
+  .account-meta,
+  .account-actions {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .admin-form-row button,
+  .accounts-toolbar button {
+    width: 100%;
+  }
+
+  .account-item {
+    padding: 15px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  button {
+    transition: none;
+  }
+}
   </style>
 </head>
 
@@ -408,22 +600,32 @@ select {
 
     <div class="card">
 
-      <label for="apiKeyInput">
-        Add Approved gk API Key
+      <label class="admin-heading" for="apiKeyInput">
+        Add Account
       </label>
 
-      <input
-        id="apiKeyInput"
-        type="password"
-        placeholder="gk-..."
-      >
+      <p class="admin-help" id="accountAddHelp">
+        Approve an API key for access to your app.
+      </p>
 
-      <button
-        id="addAccountBtn"
-        class="primary"
-      >
-        Add Account
-      </button>
+      <div class="admin-form-row">
+        <input
+          id="apiKeyInput"
+          type="password"
+          placeholder="Paste full gk-... key"
+          aria-describedby="accountAddHelp"
+          autocomplete="off"
+          spellcheck="false"
+        >
+
+        <button
+          id="addAccountBtn"
+          class="primary"
+          type="button"
+        >
+          Add Account
+        </button>
+      </div>
 
       <div
         id="addMessage"
@@ -448,20 +650,28 @@ select {
     </div>
     <div class="card">
 
-      <label for="searchApiKeyInput">
-        Find Account by Full API Key
+      <label class="admin-heading" for="searchApiKeyInput">
+        Find Account
       </label>
 
-      <div class="search-grid">
+      <p class="admin-help" id="accountSearchHelp">
+        Paste the full API key to find its account and linked users.
+      </p>
+
+      <div class="admin-form-row">
         <input
           id="searchApiKeyInput"
           type="password"
-          placeholder="Paste gk-..."
+          placeholder="Paste full gk-... key"
+          aria-describedby="accountSearchHelp"
+          autocomplete="off"
+          spellcheck="false"
         >
 
         <button
           id="searchAccountBtn"
           class="primary"
+          type="button"
         >
           Find Account
         </button>
@@ -527,15 +737,21 @@ select {
 
     <div class="card">
 
-      <div class="row">
+      <div class="accounts-toolbar">
+        <div>
+          <h2 class="admin-heading">Accounts</h2>
+          <p class="admin-help">
+            Review access, linked users, and saved history.
+          </p>
+        </div>
 
         <button
           id="refreshBtn"
           class="secondary"
+          type="button"
         >
           Refresh Accounts
         </button>
-
       </div>
 
       <div
