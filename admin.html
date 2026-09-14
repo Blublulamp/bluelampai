@@ -899,6 +899,35 @@ let auditEvents = [];
       };
     }
 
+    async function readAdminResponse(response) {
+      if (
+        response.status === 401 ||
+        response.status === 403
+      ) {
+        const message =
+          "Admin access was rejected. Check your admin secret and save it again.";
+
+        setMessage(secretMessage, message, "error");
+
+        throw new Error(message);
+      }
+
+      try {
+        return await response.json();
+      } catch {
+        throw new Error(
+          "The server returned an unreadable response. Please try again."
+        );
+      }
+    }
+
+    async function refreshAdminViews() {
+      searchResult.innerHTML = "";
+
+      await loadAccounts();
+      await loadAudit();
+    }
+
 
     saveSecretBtn.addEventListener(
       "click",
@@ -1061,7 +1090,7 @@ async function loadAudit() {
     );
 
     const data =
-      await response.json();
+      await readAdminResponse(response);
 
     if (!response.ok) {
       throw new Error(
@@ -1130,7 +1159,7 @@ async function loadAudit() {
         );
 
         const data =
-          await response.json();
+          await readAdminResponse(response);
 
         if (!response.ok) {
           throw new Error(
@@ -1152,7 +1181,7 @@ async function loadAudit() {
           "success"
         );
 
-        await loadAccounts();
+        await refreshAdminViews();
 
       } catch (error) {
         setMessage(
@@ -1193,6 +1222,7 @@ async function loadAudit() {
 
       setMessage(searchMessage, "Searching...");
       searchResult.innerHTML = "";
+      delete searchResult.dataset.accountId;
       searchAccountBtn.disabled = true;
 
       try {
@@ -1207,7 +1237,7 @@ async function loadAudit() {
           }
         );
 
-        const data = await response.json();
+        const data = await readAdminResponse(response);
 
         if (!response.ok) {
           throw new Error(
@@ -1217,6 +1247,11 @@ async function loadAudit() {
         }
 
         renderAccount(data.account, searchResult);
+
+        searchResult.dataset.accountId =
+          String(data.account.id);
+
+        await loadAudit();
 
         setMessage(
           searchMessage,
@@ -1268,7 +1303,7 @@ async function loadAudit() {
 
 
         const data =
-          await response.json();
+          await readAdminResponse(response);
 
 
         if (!response.ok) {
@@ -1283,6 +1318,34 @@ async function loadAudit() {
           Array.isArray(data.accounts)
             ? data.accounts
             : [];
+
+        const selectedAccountId =
+          searchResult.dataset.accountId;
+
+        if (selectedAccountId) {
+          const updatedAccount = accounts.find(account =>
+            String(account.id) === selectedAccountId
+          );
+
+          searchResult.innerHTML = "";
+
+          if (updatedAccount) {
+            renderAccount(updatedAccount, searchResult);
+
+            setMessage(
+              searchMessage,
+              "Account details updated.",
+              "success"
+            );
+          } else {
+            delete searchResult.dataset.accountId;
+
+            setMessage(
+              searchMessage,
+              "This account is no longer in the account list."
+            );
+          }
+        }
 
 
         const normalAccounts =
@@ -1745,6 +1808,12 @@ ${
           '[data-action="delete"]'
         );
 
+      if (deleteButton) {
+        deleteButton.addEventListener("click", () => {
+          deleteAccount(account);
+        });
+      }
+
 
       statusButton.addEventListener(
         "click",
@@ -1922,7 +1991,7 @@ ${
         );
 
         const data =
-          await response.json();
+          await readAdminResponse(response);
 
         if (!response.ok) {
           throw new Error(
@@ -1939,7 +2008,7 @@ ${
           "success"
         );
 
-        await loadAccounts();
+        await refreshAdminViews();
 
       } catch (error) {
         setMessage(
@@ -2012,7 +2081,7 @@ ${
 
 
         const data =
-          await response.json();
+          await readAdminResponse(response);
 
 
         if (!response.ok) {
@@ -2030,7 +2099,7 @@ ${
         );
 
 
-        await loadAccounts();
+        await refreshAdminViews();
 
 
       } catch (error) {
@@ -2076,7 +2145,7 @@ ${
         );
 
         const data =
-          await response.json();
+          await readAdminResponse(response);
 
         if (!response.ok) {
           throw new Error(
@@ -2091,7 +2160,7 @@ ${
           "success"
         );
 
-        await loadAccounts();
+        await refreshAdminViews();
 
       } catch (error) {
         setMessage(
@@ -2137,7 +2206,7 @@ ${
         );
 
         const data =
-          await response.json();
+          await readAdminResponse(response);
 
         if (!response.ok) {
           throw new Error(
@@ -2152,7 +2221,7 @@ ${
           "success"
         );
 
-        await loadAccounts();
+        await refreshAdminViews();
 
       } catch (error) {
         setMessage(
