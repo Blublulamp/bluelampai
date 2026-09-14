@@ -196,6 +196,7 @@ const attachmentIds =
 
 
 let accountId = null;
+let ownerTelegramUserId = null;
 
 
 if (attachmentIds.length > 0) {
@@ -263,6 +264,16 @@ if (attachmentIds.length > 0) {
     String(
       accountData.account.id
     );
+
+  const resolvedOwnerId = accountData.owner_telegram_user_id;
+
+  if (!Number.isSafeInteger(resolvedOwnerId) || resolvedOwnerId <= 0) {
+    return res.status(502).json({
+      error: { message: "Could not verify attachment ownership" }
+    });
+  }
+
+  ownerTelegramUserId = String(resolvedOwnerId);
 }
 
 let upstreamMessages =
@@ -312,7 +323,10 @@ if (
               ATTACHMENT_INTERNAL_SECRET,
 
             "x-account-id":
-              accountId
+              accountId,
+
+            "x-owner-telegram-user-id":
+              ownerTelegramUserId
           }
         }
       );
@@ -343,7 +357,8 @@ const document = await readCachedTextAttachment(
   fileResponse,
   attachmentId,
   MAX_AI_TEXT_BYTES - extractedTextBytes,
-  accountId
+  accountId,
+  ownerTelegramUserId
 );
 
         extractedTextBytes += document.size;
@@ -869,7 +884,8 @@ async function readCachedTextAttachment(
   response,
   attachmentId,
   remainingBytes,
-  accountId
+  accountId,
+  ownerTelegramUserId
 ) {
   const cacheUrl =
     `${ATTACHMENT_SERVICE_URL.replace(/\/$/, "")}` +
@@ -877,7 +893,8 @@ async function readCachedTextAttachment(
 
   const headers = {
     "x-internal-secret": ATTACHMENT_INTERNAL_SECRET,
-    "x-account-id": accountId
+    "x-account-id": accountId,
+    "x-owner-telegram-user-id": ownerTelegramUserId
   };
 
   let cachedDocument = null;
