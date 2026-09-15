@@ -4850,6 +4850,7 @@ body: JSON.stringify({
 
   let assistantText = "";
   let buffer = "";
+  let streamCompleted = false;
 
 
   assistantBubble.innerHTML = "";
@@ -4902,6 +4903,7 @@ body: JSON.stringify({
 
 
       if (dataText === "[DONE]") {
+        streamCompleted = true;
         continue;
       }
 
@@ -4917,6 +4919,12 @@ body: JSON.stringify({
 
 
       checkBlampStreamError(chunkData);
+
+      if (
+        chunkData?.choices?.[0]?.finish_reason != null
+      ) {
+        streamCompleted = true;
+      }
 
       const chunk =
         chunkData?.choices?.[0]?.delta?.content;
@@ -4971,10 +4979,12 @@ renderMessageContent(
         line.slice(5).trim();
 
 
-      if (
-        !dataText ||
-        dataText === "[DONE]"
-      ) {
+      if (!dataText) {
+        continue;
+      }
+
+      if (dataText === "[DONE]") {
+        streamCompleted = true;
         continue;
       }
 
@@ -4984,6 +4994,12 @@ renderMessageContent(
           JSON.parse(dataText);
 
         checkBlampStreamError(chunkData);
+
+        if (
+          chunkData?.choices?.[0]?.finish_reason != null
+        ) {
+          streamCompleted = true;
+        }
 
         const chunk =
           chunkData?.choices?.[0]?.delta?.content;
@@ -5006,6 +5022,12 @@ renderMessageContent(
     }
   }
 
+
+  if (!streamCompleted) {
+    throw new Error(
+      "The connection ended before the reply finished. Please retry."
+    );
+  }
 
   if (!assistantText) {
     throw new Error(
