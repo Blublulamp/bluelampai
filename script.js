@@ -4798,29 +4798,36 @@ body: JSON.stringify({
 
   if (!response.ok) {
     let errorMessage =
-      `API Error ${response.status}`;
+      response.status === 429
+        ? "Too many requests. Please wait and try again."
+        : response.status >= 500
+          ? "The service is temporarily unavailable. Please try again shortly."
+          : `Request failed (${response.status}). Please try again.`;
 
     try {
-      const errorData =
-        await response.json();
+      const rawBody = await response.text();
 
-      if (errorData?.error?.message) {
-        errorMessage =
-          errorData.error.message;
-      }
+      let errorData = null;
 
-    } catch {
       try {
-        const errorText =
-          await response.text();
-
-        if (errorText) {
-          errorMessage = errorText;
-        }
-
+        errorData = JSON.parse(rawBody);
       } catch {
-        // Keep the normal API error.
+        // Keep the safe fallback for non-JSON responses.
       }
+
+      const serverMessage =
+        typeof errorData?.error === "string"
+          ? errorData.error
+          : errorData?.error?.message;
+
+      if (
+        typeof serverMessage === "string" &&
+        serverMessage.trim()
+      ) {
+        errorMessage = serverMessage.trim();
+      }
+    } catch {
+      // Keep the fallback if reading the response fails.
     }
 
     throw new Error(errorMessage);
@@ -5033,8 +5040,12 @@ renderMessageContent(
     error?.name ===
     "AbortError"
   ) {
+    const stoppedText =
+      assistantBubble.textContent.trim();
+
     if (
-      !assistantBubble.textContent.trim()
+      !stoppedText ||
+      stoppedText === "Thinking..."
     ) {
       assistantBubble.textContent =
         "Generation stopped.";
