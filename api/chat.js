@@ -79,8 +79,18 @@ if (!isAllowedOrigin(req)) {
   });
 }
 
-  try {
+  const upstreamController =
+    new AbortController();
 
+  const onClientClose = () => {
+    if (!res.writableEnded) {
+      upstreamController.abort();
+    }
+  };
+
+  res.on("close", onClientClose);
+
+  try {
 /*
   The Telegram session is stored only
   in the HttpOnly cookie.
@@ -457,7 +467,7 @@ const document = await readCachedTextAttachment(
       UPSTREAM_API,
       {
         method: "POST",
-
+        signal: upstreamController.signal,
         headers: {
           "Content-Type": "application/json",
           "Authorization":
@@ -486,18 +496,51 @@ const document = await readCachedTextAttachment(
     */
 
     if (!response.ok) {
-      const text =
-        await response.text();
+      const providerStatus = response.status;
 
-      res.status(response.status);
-
-      res.setHeader(
-        "Content-Type",
-        response.headers.get("content-type") ||
-          "application/json"
+      console.error(
+        "AI provider rejected request:",
+        providerStatus
       );
 
-      return res.send(text);
+      let message =
+        "The model could not process this request. Please try again or choose another model.";
+
+      if (providerStatus === 429) {
+        message =
+          "This model is busy or its request limit has been reached. Please wait or choose another model.";
+      } else if (
+        providerStatus === 408 ||
+        providerStatus === 504
+      ) {
+        message =
+          "The model took too long to respond. Please try again.";
+      } else if (providerStatus >= 500) {
+        message =
+          "The model service is temporarily unavailable. Please try again shortly or choose another model.";
+      } else if (
+        providerStatus === 401 ||
+        providerStatus === 403
+      ) {
+        message =
+          "The model provider rejected access. Please contact the administrator.";
+      }
+
+      try {
+        await response.body?.cancel();
+      } catch {
+        // The error response may already be closed.
+      }
+
+      const clientStatus =
+        providerStatus === 401 ||
+        providerStatus === 403
+          ? 502
+          : providerStatus;
+
+      return res.status(clientStatus).json({
+        error: { message }
+      });
     }
 
 
@@ -561,11 +604,17 @@ const document = await readCachedTextAttachment(
 
 
   } catch (error) {
+    if (
+      res.destroyed ||
+      upstreamController.signal.aborted
+    ) {
+      return;
+    }
+
     console.error(
       "Proxy error:",
       error
     );
-
 
     if (!res.headersSent) {
       return res.status(500).json({
@@ -575,8 +624,14 @@ const document = await readCachedTextAttachment(
       });
     }
 
-
     return res.end();
+  } finally {
+    res.removeListener(
+      "close",
+      onClientClose
+    );
+
+    upstreamController.abort();
   }
 }
 async function readTextAttachment(
