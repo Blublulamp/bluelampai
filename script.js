@@ -4787,7 +4787,9 @@ body: JSON.stringify({
   })),
   attachment_ids: getBlampContextAttachmentIds(
     messages.slice(-50)
-  )
+  ),
+  attachment_context_only:
+    outgoingAttachments.length === 0
 }),
 
       signal:
