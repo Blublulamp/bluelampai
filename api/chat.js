@@ -394,10 +394,27 @@ const document = await readCachedTextAttachment(
         extractedTextBytes += document.size;
         documentParts.push(document.part);
       } catch (error) {
+        const message =
+          error?.message ||
+          "Could not read text attachment";
+
+        if (
+          /stored but cannot be read by AI yet/i.test(
+            message
+          )
+        ) {
+          documentParts.push({
+            type: "text",
+            text:
+              "This attachment is stored successfully, but its contents cannot be analysed directly. If the user needs its contents reviewed, ask them to extract the archive and upload the specific files inside it."
+          });
+
+          continue;
+        }
+
         return res.status(400).json({
           error: {
-            message:
-              error.message || "Could not read text attachment"
+            message
           }
         });
       }
