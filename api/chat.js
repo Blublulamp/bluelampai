@@ -343,14 +343,34 @@ if (
 
 
     if (!fileResponse.ok) {
-      return res
-        .status(fileResponse.status)
-        .json({
-          error: {
-            message:
-              "Could not load image attachment"
-          }
+      const missing =
+        fileResponse.status === 404 ||
+        fileResponse.status === 410;
+
+      if (
+        missing &&
+        req.body?.attachment_context_only === true
+      ) {
+        try {
+          await fileResponse.body?.cancel();
+        } catch {}
+
+        imageParts.push({
+          type: "text",
+          text:
+            "An attachment from an earlier message is no longer available. Do not infer its contents. If the current question requires that file, ask the user to upload it again. Otherwise answer the current question normally."
         });
+
+        continue;
+      }
+
+      return res.status(fileResponse.status).json({
+        error: {
+          message: missing
+            ? "This attachment is no longer available. Please upload it again."
+            : "Could not load attachment. Please try again."
+        }
+      });
     }
 
 
@@ -482,6 +502,9 @@ const document = await readCachedTextAttachment(
            upstreamMessages,
 
          attachment_ids:
+           undefined,
+
+         attachment_context_only:
            undefined,
 
          stream: true
